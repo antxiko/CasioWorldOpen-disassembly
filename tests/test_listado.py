@@ -27,7 +27,8 @@ OTROS_JUEGOS = ("Pitfall", "Temptations", "Stardust", "Ale Hop", "Colt 36",
                 "Antarctic", "Pippols", "Frogger", "Time Pilot",
                 "Super Cobra", "Billiards", "Mahjong", "Hyper Rally",
                 "Hyper Olympic", "Hyper Sports", "Cabbage Patch",
-                "Demonia", "Nemesis", "Sky Jaguar", "Tennis")
+                "Demonia", "Nemesis", "Sky Jaguar", "Tennis",
+                "Konami's Golf", "Hole in One", "3D Golf")
 
 
 def asm():
@@ -265,6 +266,29 @@ class TestWeb(unittest.TestCase):
                     self.assertTrue(v in arranques or v in datos or v == FIN - 1,
                                     "%s nombra 0x%04X y no existe" % (fn, v))
 
+
+    def test_las_paginas_generadas_no_hablan_de_otro_juego(self):
+        """Es el fallo que se colo de verdad: md2html.py llevaba el titulo y el
+        pie legal de OTRO juego copiados de su proyecto hermano, y como el test
+        solo miraba los .md -que estaban bien- las catorce paginas HTML salieron
+        con el nombre equivocado en el <title> y en el pie. Ahora se miran los
+        .html generados y la propia herramienta que los escribe."""
+        rutas = []
+        for carpeta in (DOCS, os.path.join(DOCS, "es")):
+            if not os.path.isdir(carpeta):
+                continue
+            rutas += [os.path.join(carpeta, f) for f in os.listdir(carpeta)
+                      if f.endswith(".html")]
+        rutas.append(os.path.join(RAIZ, "tools", "md2html.py"))
+        rutas.append(os.path.join(RAIZ, "tools", "make_web.py"))
+        for ruta in rutas:
+            if not os.path.exists(ruta):
+                continue
+            with open(ruta, encoding="utf-8") as f:
+                texto = f.read()
+            for juego in OTROS_JUEGOS:
+                self.assertNotIn(juego, texto, "%s nombra %s"
+                                 % (os.path.relpath(ruta, RAIZ), juego))
 
 if __name__ == "__main__":
     unittest.main()

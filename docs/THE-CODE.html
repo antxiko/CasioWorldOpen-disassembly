@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The code — Konami&#x27;s Golf (Konami, 1985)</title>
+<title>The code — Casio World Open (Casio, 1985)</title>
 <style>
 :root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
   --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
@@ -95,4 +95,4 @@ audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 <p>Three variables — (0xE001), (0xE06C) and (0xE077) — work as to-do lists: the interrupt handler rotates them and, for every bit set, calls the phase it belongs to. That is how a frame&#x27;s work gets shared out without an explicit state machine.</p>
 <h2 id="how-it-is-traced">How it is traced</h2>
 <p>Of the 32,768 bytes, 8,185 are code actually reached and 24,583 are data declared one by one. The five bytes at 0x4B04 are a curious case: valid code — <code>ld a,080h / ld (0e077h),a</code> — that no jump in the whole cartridge reaches.</p>
-<footer><p><em>Konami's Golf</em> was published by Konami for the MSX; its catalogue number is RC-723 and it is 16 KB. All rights in the game remain with their holders. This is preservation, study and documentation work, and the cartridge image is not distributed.</p></footer></div>
+<footer><p><em>Casio World Open</em> was published by Casio for the MSX in 1985, in a 16 KB cartridge. All rights in the game remain with their holders. This is preservation, study and documentation work, and the cartridge image is not distributed.</p></footer></div>

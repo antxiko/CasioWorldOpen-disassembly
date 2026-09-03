@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hallazgos — Konami&#x27;s Golf (Konami, 1985)</title>
+<title>Hallazgos — Casio World Open (Casio, 1985)</title>
 <style>
 :root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
   --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
@@ -99,4 +99,4 @@ audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 <p>0x44F3 entra en SCREEN 1 sólo para quedarse con el juego de caracteres que carga la BIOS, lo copia a RAM y en SCREEN 2 lo vuelca como patrones del campo.</p>
 <h2 id="cinco-bytes-que-no-ejecuta-nadie">Cinco bytes que no ejecuta nadie</h2>
 <p>En 0x4B04 hay <code>ld a,080h / ld (0e077h),a</code>, dos instrucciones válidas encajadas entre un <code>jp</code> y la rutina siguiente, a las que no llega ni un salto de todo el cartucho. Lo que hacen está vivo en 0x5520, con una llamada delante.</p>
-<footer><p><em>Konami's Golf</em> lo publico Konami para MSX; su numero de catalogo es RC-723 y son 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.</p></footer></div>
+<footer><p><em>Casio World Open</em> lo publico Casio para MSX en 1985, en un cartucho de 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.</p></footer></div>

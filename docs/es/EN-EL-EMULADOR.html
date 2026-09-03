@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>En el emulador — Konami&#x27;s Golf (Konami, 1985)</title>
+<title>En el emulador — Casio World Open (Casio, 1985)</title>
 <style>
 :root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
   --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
@@ -96,4 +96,4 @@ audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 <p>De las 768 celdas de un cuadro de partida real, <b>718 son patrones de <code>tabla_patrones_terreno</code></b>. No es que las imágenes se parezcan: es que salen de la misma tabla, byte a byte.</p>
 <h2 id="por-que-el-titulo-sale-sin-su-texto">Por que el titulo sale sin su texto</h2>
 <p>En la pantalla de titulo, el logotipo lo pone el cartucho —304 bytes en 0x4301— pero <b>el texto lo escribe la maquina con la fuente de su propia BIOS</b>, que INIT32 carga en la tabla de patrones. Esa fuente no esta en la ROM del juego, asi que dibujando solo desde el cartucho salen el logotipo y el fondo, y los renglones en blanco. Por eso la web ensena el rotulo y no la pantalla entera.</p>
-<footer><p><em>Konami's Golf</em> lo publico Konami para MSX; su numero de catalogo es RC-723 y son 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.</p></footer></div>
+<footer><p><em>Casio World Open</em> lo publico Casio para MSX en 1985, en un cartucho de 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.</p></footer></div>

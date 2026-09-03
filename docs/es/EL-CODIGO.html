@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>El código — Konami&#x27;s Golf (Konami, 1985)</title>
+<title>El código — Casio World Open (Casio, 1985)</title>
 <style>
 :root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
   --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
@@ -95,4 +95,4 @@ audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 <p>Tres variables —(0xE001), (0xE06C) y (0xE077)— funcionan como listas de tareas: el manejador de interrupción las va rotando y, por cada bit puesto, llama a la fase que le toca. Es la manera de repartir el trabajo de un cuadro sin una máquina de estados explícita.</p>
 <h2 id="como-se-traza">Cómo se traza</h2>
 <p>De los 32.768 bytes, 8.185 son código alcanzado de verdad y 24.583 son datos declarados uno a uno. Los cinco bytes de 0x4B04 son un caso curioso: código válido —<code>ld a,080h / ld (0e077h),a</code>— al que no llega ningún salto de todo el cartucho.</p>
-<footer><p><em>Konami's Golf</em> lo publico Konami para MSX; su numero de catalogo es RC-723 y son 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.</p></footer></div>
+<footer><p><em>Casio World Open</em> lo publico Casio para MSX en 1985, en un cartucho de 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.</p></footer></div>
