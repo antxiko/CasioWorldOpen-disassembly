@@ -1,0 +1,2602 @@
+# Anotaciones de Casio World Open (Casio, MSX1, 1985).
+#
+# Cada linea va anclada a una direccion. Directivas: L=etiqueta, C=comentario de
+# linea, B=cabecera de bloque, D=rango de datos, F=anchura de fila. Sin acentos.
+#
+# EL CARTUCHO. 32 KB en 0x4000-0xBFFF. La cabecera AB declara SOLO INIT, en
+# 0x4010.
+D 0x4000 0x4010 cabecera_ab  Cabecera AB: firma, INIT=0x4010, STATEMENT/DEVICE/TEXT=0, seis bytes de relleno
+F 0x4000 16
+
+L 0x4010 init  Punto de entrada que llama la BIOS tras la cabecera AB
+
+# 0x411A (llamado con HL=0x5031 o 0x5032): NO usa un tamano dinamico de
+# verdad. Medido con un tcl de openMSX (0xE09A/0xE09C) desde el arranque
+# hasta la pantalla de titulo: se quedan en 0x0000 todo ese tramo -el
+# unico peso real en la cuenta final es (0xE005) bit 6, que hace C=0x24
+# (36) o C=0x48 (72) segun ese bit-. O sea que estas dos llamadas copian
+# un bloque fijo de 36 o 72 bytes a VRAM (0x194A/0x198A), no un tamano que
+# dependa de otra cosa. Sin confirmar todavia si (0xE09A)/(0xE09C) cambian
+# MAS ADELANTE en la partida real (necesitaria pasar de la pantalla de
+# titulo, que el volcado de 12s no alcanza).
+
+D 0xbfa4 0xbfc2 tabla_despacho  15 punteros de 16 bits para el jp (hl) de 0xBE8F, indexados por (~A)*2 con A>=0xE0
+F 0xbfa4 w5
+
+# ======================================================================
+# EL DESCOMPRESOR RLE (0xA8FB) Y POR QUE CASI NADA DE LO QUE COMPRIME
+# ES UN SPRITE
+# ======================================================================
+# OJO CON EL NOMBRE. En este cartucho los unicos sprites son los diez de
+# 16x16 que 0x60A2 deja en VRAM 0x3800 (patrones_de_sprite, 0x60B6). Todo
+# lo demas que se descomprime con 0xA8FB son MAPAS DE INDICES DE TILE que
+# se pintan en el bitmap de SCREEN 2, no objetos del VDP.
+#
+# La cadena entera, leida del listado y comprobada:
+#  1. 0xA8CB descomprime, SEPARA cada byte con un cero -convirtiendo la
+#     tira en valores de 16 bits- y hace la SUMA ACUMULADA de todos ellos.
+#     Lo que queda en RAM es una lista de codigos de tile, y hacen falta
+#     dieciseis bits porque tabla_patrones_terreno tiene 570 entradas.
+#  2. Los mapas (vistas de terreno, cuadros del golfista, planos de hoyo)
+#     son INDICES dentro de esa lista: 0x5B61 hace `add hl,bc` DOS veces,
+#     que es indexado de 16 bits, y pasa el codigo a 0x5E66.
+#  3. 0x5E66 copia el patron de 8x8 a la VRAM, espejandolo bit a bit si el
+#     bit 7 de (0xE0A0) esta puesto.
+#
+# Medido contra un cuadro real de openMSX: 718 de las 768 celdas de la
+# pantalla de juego son patrones de tabla_patrones_terreno.
+# 0x44F3 monta la pantalla de juego: copia el tileset de SCREEN 1 (VRAM
+# 0x0100) a SCREEN 2 (VRAM 0x1500) -reutiliza el mismo juego de caracteres
+# como patrones del campo-, rellena color, y llama a 0x60A2 -> 0xA8FB.
+#
+# Formato de 0xA8FB(hl=fuente, de=destino): cabecera de 2 bytes = cuenta
+# de BYTES FUENTE que quedan por consumir (no de salida). Byte normal:
+# literal (copia y descuenta 1). Byte 0xFF: racha -los dos siguientes son
+# [cuenta][valor], escribe `valor` esa `cuenta` de veces y descuenta 3-.
+# Para cuando la cuenta llega a cero.
+#
+# Verificado en Python: el primer bloque (cabecera en 0x60B6, cuenta=64)
+# decodifica exacto, consume las 64 fuente y para justo en 0x60F8; salida
+# 320 bytes con pinta de sprite disperso. Los bloques NO van pegados sin
+# mas: justo despues (0x60F8) hay CODIGO Z80 de verdad, no otra cabecera
+# -candidato a rutina ayudante del propio dibujado-, asi que el resto de
+# DATA_60B6/DATA_A926 es una mezcla de sprites sueltos (cada uno con su
+# propia direccion, sin localizar la tabla que las reune) y codigo, no una
+# tira continua. Solo se declara el PRIMER sprite, que si esta cerrado.
+D 0x60b6 0x60f8 patrones_de_sprite  LOS SPRITES DE VERDAD, los del VDP: 0x60A2 los descomprime (66 bytes fuente -> 320 de salida) y copia esos 320 bytes a VRAM 0x3800, que con el registro 6 a 0x07 es la tabla de patrones de sprite. Son DIEZ sprites de 16x16: la bola a cinco tamanos, para la perspectiva, mas los marcadores
+F 0x60b6 16
+
+# ======================================================================
+# TABLA DE 18 PUNTEROS A SPRITES DEL CAMPO EN 0xA9EC (llamada desde
+# 0xA8CB, indexada por BC), Y NUEVE SPRITES DECODIFICADOS Y CONTRASTADOS
+# ======================================================================
+# 0xA8BC lee un puntero de 16 bits en 0xA9EC+BC (BC=indice*2) y lo pasa a
+# 0xA8FB (el descompresor). Los 18 punteros SOLO tienen 10 direcciones
+# unicas -la mayoria se repite exactamente dos veces, candidato a que dos
+# mitades del recorrido (ida/vuelta de 9 hoyos) compartan sprites de
+# terreno-, y las 9 primeras direcciones unicas TILAN SIN HUECO al
+# ordenarlas: decodificadas en Python con el mismo formato de 0xA8FB,
+# ocho de las nueve paran EXACTO en el puntero siguiente; la de 0xAB30
+# para un byte antes (0xAB6E en vez de 0xAB6F, un byte de relleno suelto,
+# sin explicar ese byte solo). Es la prueba mas fuerte de esta tanda.
+D 0xa9ec 0xaa10 tabla_vistas_de_terreno  18 punteros de 16 bits a sprites del campo, indexados por BC desde 0xA8CB (0xA8BC)
+F 0xa9ec w6
+
+D 0xaa10 0xaa47 vista_terreno_01  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (55 bytes fuente)
+F 0xaa10 16
+D 0xaa47 0xaa90 vista_terreno_02  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (73 bytes fuente)
+F 0xaa47 16
+D 0xaa90 0xaae4 vista_terreno_03  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (84 bytes fuente)
+F 0xaa90 16
+D 0xaae4 0xab30 vista_terreno_04  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (76 bytes fuente)
+F 0xaae4 16
+D 0xab30 0xab6e vista_terreno_05  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (62 bytes fuente)
+F 0xab30 16
+D 0xab6f 0xab9a vista_terreno_06  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (43 bytes fuente)
+F 0xab6f 16
+D 0xab9a 0xabd8 vista_terreno_07  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (62 bytes fuente)
+F 0xab9a 16
+D 0xabd8 0xac38 vista_terreno_08  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (96 bytes fuente)
+F 0xabd8 16
+D 0xac38 0xac7c vista_terreno_09  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (68 bytes fuente)
+F 0xac38 16
+D 0xac7c 0xacb7 vista_terreno_10  Sprite del campo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (59 bytes fuente)
+F 0xac7c 16
+
+D 0xab6e 0xab6f relleno_ab6e  Un byte suelto entre dos sprites, sin explicar (posible relleno de alineacion)
+# ======================================================================
+# TABLA DE 98 PUNTEROS A SPRITES DEL GOLFISTA EN 0x6A2B (llamada desde
+# 0x5AFD, indexada por un desplazamiento acumulado que calcula 0x5E40 a
+# partir de DATA_5E54), Y 54 SPRITES DECODIFICADOS Y CONTRASTADOS
+# ======================================================================
+# 0x5AFD (llamada con B=(0xE0B4) bajo) es el motor de animacion del
+# golfista: 0x5E40 recorre DATA_5E54 (18 pasos, tipico 4-6) y devuelve en C
+# la suma acumulada -el indice de fotograma-, que se multiplica por 2 para
+# indexar la tabla de 0x6A2B (98 punteros; el 0-esimo puntero cae justo al
+# terminar la tabla, en 0x6AEF, la prueba de tila de siempre). Cada puntero
+# va al mismo descompresor 0xA8FB. De las 98 entradas solo hay 54
+# direcciones unicas (se repiten, mismo patron que la tabla de sprites del
+# campo); decodificadas en Python con el formato ya verificado, las 53
+# primeras (ordenadas por direccion) TILAN SIN HUECO, ni uno: cada una para
+# EXACTO en la direccion de la siguiente. La ultima (0x8A63) decodifica
+# igual de limpio (251 bytes fuente, 294 de salida) y no hay puntero
+# siguiente con que contrastarla, pero el patron de las 53 anteriores no
+# deja duda. Casi todas las salidas miden 294 bytes (el golfista completo);
+# diez miden 105 (una pose mas pequena, quiza el golpe de impacto,
+# tipicamente cada 5-6 fotogramas -mismo ritmo que DATA_5E54-).
+D 0x6a2b 0x6aef tabla_cuadros_del_golfista  98 punteros de 16 bits a sprites del golfista, indexados por el acumulado de 0x5E40 desde 0x5AFD (0x5B0D)
+F 0x6a2b w6
+
+D 0x6aef 0x6b20 cuadro_golfista_01  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (49 bytes fuente, 105 de salida)
+F 0x6aef 16
+D 0x6b20 0x6bc3 cuadro_golfista_02  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de salida)
+F 0x6b20 16
+D 0x6bc3 0x6c6b cuadro_golfista_03  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (168 bytes fuente, 294 de salida)
+F 0x6bc3 16
+D 0x6c6b 0x6d12 cuadro_golfista_04  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (167 bytes fuente, 294 de salida)
+F 0x6c6b 16
+D 0x6d12 0x6d8c cuadro_golfista_05  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (122 bytes fuente, 294 de salida)
+F 0x6d12 16
+D 0x6d8c 0x6e29 cuadro_golfista_06  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (157 bytes fuente, 294 de salida)
+F 0x6d8c 16
+D 0x6e29 0x6e64 cuadro_golfista_07  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (59 bytes fuente, 105 de salida)
+F 0x6e29 16
+D 0x6e64 0x6f19 cuadro_golfista_08  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (181 bytes fuente, 294 de salida)
+F 0x6e64 16
+D 0x6f19 0x6fc5 cuadro_golfista_09  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (172 bytes fuente, 294 de salida)
+F 0x6f19 16
+D 0x6fc5 0x7064 cuadro_golfista_10  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (159 bytes fuente, 294 de salida)
+F 0x6fc5 16
+D 0x7064 0x70e9 cuadro_golfista_11  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (133 bytes fuente, 294 de salida)
+F 0x7064 16
+D 0x70e9 0x718a cuadro_golfista_12  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (161 bytes fuente, 294 de salida)
+F 0x70e9 16
+D 0x718a 0x71bb cuadro_golfista_13  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (49 bytes fuente, 105 de salida)
+F 0x718a 16
+D 0x71bb 0x727f cuadro_golfista_14  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (196 bytes fuente, 294 de salida)
+F 0x71bb 16
+D 0x727f 0x7339 cuadro_golfista_15  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (186 bytes fuente, 294 de salida)
+F 0x727f 16
+D 0x7339 0x73e8 cuadro_golfista_16  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (175 bytes fuente, 294 de salida)
+F 0x7339 16
+D 0x73e8 0x7471 cuadro_golfista_17  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (137 bytes fuente, 294 de salida)
+F 0x73e8 16
+D 0x7471 0x7500 cuadro_golfista_18  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (143 bytes fuente, 294 de salida)
+F 0x7471 16
+D 0x7500 0x753b cuadro_golfista_19  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (59 bytes fuente, 105 de salida)
+F 0x7500 16
+D 0x753b 0x75f8 cuadro_golfista_20  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (189 bytes fuente, 294 de salida)
+F 0x753b 16
+D 0x75f8 0x76a8 cuadro_golfista_21  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (176 bytes fuente, 294 de salida)
+F 0x75f8 16
+D 0x76a8 0x7734 cuadro_golfista_22  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (140 bytes fuente, 294 de salida)
+F 0x76a8 16
+D 0x7734 0x77de cuadro_golfista_23  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (170 bytes fuente, 294 de salida)
+F 0x7734 16
+D 0x77de 0x780d cuadro_golfista_24  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (47 bytes fuente, 105 de salida)
+F 0x77de 16
+D 0x780d 0x78e8 cuadro_golfista_25  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (219 bytes fuente, 294 de salida)
+F 0x780d 16
+D 0x78e8 0x79ad cuadro_golfista_26  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (197 bytes fuente, 294 de salida)
+F 0x78e8 16
+D 0x79ad 0x7a56 cuadro_golfista_27  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (169 bytes fuente, 294 de salida)
+F 0x79ad 16
+D 0x7a56 0x7b25 cuadro_golfista_28  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (207 bytes fuente, 294 de salida)
+F 0x7a56 16
+D 0x7b25 0x7b53 cuadro_golfista_29  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (46 bytes fuente, 105 de salida)
+F 0x7b25 16
+D 0x7b53 0x7bf6 cuadro_golfista_30  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de salida)
+F 0x7b53 16
+D 0x7bf6 0x7c8b cuadro_golfista_31  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (149 bytes fuente, 294 de salida)
+F 0x7bf6 16
+D 0x7c8b 0x7d29 cuadro_golfista_32  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (158 bytes fuente, 294 de salida)
+F 0x7c8b 16
+D 0x7d29 0x7d8d cuadro_golfista_33  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (100 bytes fuente, 294 de salida)
+F 0x7d29 16
+D 0x7d8d 0x7dcb cuadro_golfista_34  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (62 bytes fuente, 105 de salida)
+F 0x7d8d 16
+D 0x7dcb 0x7eb1 cuadro_golfista_35  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (230 bytes fuente, 294 de salida)
+F 0x7dcb 16
+D 0x7eb1 0x7f69 cuadro_golfista_36  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (184 bytes fuente, 294 de salida)
+F 0x7eb1 16
+D 0x7f69 0x801b cuadro_golfista_37  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (178 bytes fuente, 294 de salida)
+F 0x7f69 16
+D 0x801b 0x804e cuadro_golfista_38  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (51 bytes fuente, 105 de salida)
+F 0x801b 16
+D 0x804e 0x8116 cuadro_golfista_39  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (200 bytes fuente, 294 de salida)
+F 0x804e 16
+D 0x8116 0x81dc cuadro_golfista_40  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (198 bytes fuente, 294 de salida)
+F 0x8116 16
+D 0x81dc 0x8271 cuadro_golfista_41  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (149 bytes fuente, 294 de salida)
+F 0x81dc 16
+D 0x8271 0x8302 cuadro_golfista_42  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (145 bytes fuente, 294 de salida)
+F 0x8271 16
+D 0x8302 0x839b cuadro_golfista_43  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (153 bytes fuente, 294 de salida)
+F 0x8302 16
+D 0x839b 0x83d0 cuadro_golfista_44  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (53 bytes fuente, 105 de salida)
+F 0x839b 16
+D 0x83d0 0x8473 cuadro_golfista_45  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de salida)
+F 0x83d0 16
+D 0x8473 0x854b cuadro_golfista_46  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (216 bytes fuente, 294 de salida)
+F 0x8473 16
+D 0x854b 0x85c9 cuadro_golfista_47  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (126 bytes fuente, 294 de salida)
+F 0x854b 16
+D 0x85c9 0x867c cuadro_golfista_48  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (179 bytes fuente, 294 de salida)
+F 0x85c9 16
+D 0x867c 0x86b1 cuadro_golfista_49  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (53 bytes fuente, 105 de salida)
+F 0x867c 16
+D 0x86b1 0x879f cuadro_golfista_50  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (238 bytes fuente, 294 de salida)
+F 0x86b1 16
+D 0x879f 0x8899 cuadro_golfista_51  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (250 bytes fuente, 294 de salida)
+F 0x879f 16
+D 0x8899 0x898a cuadro_golfista_52  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (241 bytes fuente, 294 de salida)
+F 0x8899 16
+D 0x898a 0x8a63 cuadro_golfista_53  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (217 bytes fuente, 294 de salida)
+F 0x898a 16
+D 0x8a63 0x8b5e cuadro_golfista_54  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (251 bytes fuente, 294 de salida)
+F 0x8a63 16
+# ======================================================================
+# DOS SPRITES DE FONDO FIJOS EN 0xA926/0xA979 (0xA875, la rutina que
+# arranca 0x5AFD antes de la tabla de animacion del golfista)
+# ======================================================================
+# 0xA875 limpia el buffer 0xE800-0xE9FF y elige, segun el tipo de terreno
+# que le llega en A por la pila (2,4,5,7,9,0xc,0xd = uno; el resto = otro),
+# entre DOS sprites fijos de fondo (0xA926 o 0xA979), los descomprime con
+# 0xA8CB/0xA8FB, y ADEMAS descomprime siempre el sprite de terreno que
+# corresponda de tabla_vistas_de_terreno (0xA9EC). Los dos decodifican exacto:
+# 0xA926 para justo en 0xA979 (el segundo), y 0xA979 para justo en 0xA9EC
+# (el inicio de tabla_vistas_de_terreno, ya declarada) -tila sin hueco con una
+# estructura ya conocida, cierra el hueco entero de 198 bytes-.
+D 0xa926 0xa979 paleta_de_tiles_a  Sprite de fondo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (83 bytes fuente, 129 de salida)
+F 0xa926 16
+D 0xa979 0xa9ec paleta_de_tiles_b  Sprite de fondo comprimido con el formato de 0xA8FB, decodificado y verificado en Python (115 bytes fuente, 153 de salida)
+F 0xa979 16
+
+# ======================================================================
+# TABLA DE 18 PUNTEROS EN 0xACB7 (llamada desde 0x5DEC con indice
+# (0xE0B4)-1), DIEZ SPRITES, Y UN BLOQUE FIJO EN 0xB349
+# ======================================================================
+# 0x5DEC indexa 0xACB7+((0xE0B4)-1)*2 y descomprime con 0xA8FB en 0xEA14;
+# el puntero 0-esimo cae justo al terminar la tabla (0xACDB), la misma
+# prueba de tila de siempre. De los 18 punteros solo hay 10 direcciones
+# unicas y TILAN SIN HUECO, las 9 primeras exactas contra la siguiente y
+# la ultima (0xB2A3) para justo en 0xB349 -que es DIRECTAMENTE el HL con
+# el que 0x5DEC llama a 0xA8CB justo antes (0x5DEC-0x5DF2), asi que ese
+# bloque fijo tambien es un sprite comprimido mas, y decodifica limpio.
+D 0xacb7 0xacdb tabla_planos_de_hoyo  18 punteros de 16 bits a sprites, indexados por (0xE0B4)-1 desde 0x5DEC (0x5DFB)
+F 0xacb7 w6
+
+D 0xacdb 0xad7b plano_hoyo_01  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (160 bytes fuente, 190 de salida)
+F 0xacdb 16
+D 0xad7b 0xae13 plano_hoyo_02  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (152 bytes fuente, 190 de salida)
+F 0xad7b 16
+D 0xae13 0xaeb6 plano_hoyo_03  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (163 bytes fuente, 190 de salida)
+F 0xae13 16
+D 0xaeb6 0xaf54 plano_hoyo_04  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (158 bytes fuente, 190 de salida)
+F 0xaeb6 16
+D 0xaf54 0xaffa plano_hoyo_05  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (166 bytes fuente, 190 de salida)
+F 0xaf54 16
+D 0xaffa 0xb0a5 plano_hoyo_06  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (171 bytes fuente, 190 de salida)
+F 0xaffa 16
+D 0xb0a5 0xb146 plano_hoyo_07  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (161 bytes fuente, 190 de salida)
+F 0xb0a5 16
+D 0xb146 0xb1fe plano_hoyo_08  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (184 bytes fuente, 190 de salida)
+F 0xb146 16
+D 0xb1fe 0xb2a3 plano_hoyo_09  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (165 bytes fuente, 190 de salida)
+F 0xb1fe 16
+D 0xb2a3 0xb349 plano_hoyo_10  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (166 bytes fuente, 190 de salida)
+F 0xb2a3 16
+D 0xb349 0xb3e2 plano_hoyo_11  Sprite comprimido con el formato de 0xA8FB, llamado con HL fijo desde 0x5DEC (0x5DEC), decodificado y verificado en Python (153 bytes fuente, 234 de salida)
+F 0xb349 16
+# ======================================================================
+# TABLA DE PATRONES DE 8x8 SIN COMPRIMIR EN 0x8B5E (0x5E66, llamada desde
+# 0x5B61 con el indice que saca del buffer de terreno 0xE800)
+# ======================================================================
+# 0x5B61 lee un byte del mapa de terreno ya descomprimido en RAM (0xE800,
+# el que rellenan tabla_vistas_de_terreno/tabla_cuadros_del_golfista/tabla_planos_de_hoyo)
+# y lo pasa como indice a 0x5E66 (0x5B71), que calcula 0x8B5E + indice*8 y
+# copia (con espejado bit a bit, rlc/rra) 8 bytes a VRAM: un patron de
+# caracter de 8x8 sin comprimir, no otro sprite RLE. El tramo completo
+# 0x8B5E-0x9D2E mide EXACTO 4560 bytes = 570 patrones * 8, sin resto, y no
+# hay ninguna otra referencia literal de codigo dentro de ese tramo (grep
+# de todos los 0xNNNNh del listado): todo el hueco es esta unica tabla.
+D 0x8b5e 0x9d2e tabla_patrones_terreno  570 patrones de 8x8 sin comprimir, indexados por el codigo de tile del buffer 0xE800 desde 0x5E66 (0x5E78)
+F 0x8b5e 8
+
+# ======================================================================
+# CADENA DE 36 SPRITES COMPRIMIDOS EN 0x9D2E (0x5EA5, hl fijo 0x9D2E)
+# ======================================================================
+# 0x5EA5 cachea por (0xE0A5) el ultimo valor usado (a<<4, evita repetir);
+# si cambia, recorre la cadena desde 0x9D2E sumando el propio campo cuenta
+# de cada cabecera 0xA8FB (2 bytes + cuenta = el salto exacto al siguiente
+# bloque, sin tabla de punteros aparte) tantas veces como indique 'a', y
+# descomprime el bloque final en 0xEE00. Recorrida en Python: TREINTA Y SEIS
+# bloques seguidos, los treinta y seis de 128 bytes de salida exactos, y el
+# bloque 37 rompe el patron justo en 0xA875 -el arranque, ya conocido, de
+# 0xA875-: la cadena para EXACTO donde empieza codigo real, cero hueco y
+# cero solape con una estructura ya identificada por otra via.
+D 0x9d2e 0xa875 cadena_de_bloques_de_terreno  36 sprites comprimidos con el formato de 0xA8FB encadenados sin tabla de punteros (cada cabecera salta a la siguiente), verificados en Python (128 bytes de salida cada uno)
+F 0x9d2e 16
+
+# ======================================================================
+# TABLA DE DATOS POR HOYO EN 0x45A8 (18 entradas de 5 bytes, indexada
+# desde 0x4586 con (0xE0B4)-1)
+# ======================================================================
+# 0x4586 calcula 0x45A8 + ((0xE0B4)-1)*5: el primer byte de cada entrada
+# va a (0xE0A0) y su mitad baja (4 bits) a (0xE09F) -tipo de terreno del
+# hoyo, coherente con 0xA875 que lo compara contra 2,4,5,7,9,0xc,0xd-, y
+# los 4 bytes siguientes se copian a (0xE0A1)-(0xE0A4) -parametros del
+# hoyo, sin identificar uno a uno-. 18 hoyos * 5 bytes = 90 bytes exacto,
+# 0x45A8+0x5A=0x4602, justo donde retoma el codigo real (confirmado
+# desensamblando a mano esos bytes: un dispatcher de bits con saltos
+# jp c a 0x46CC/0x4885/0x4A96/0x4A9B).
+D 0x45a8 0x4602 datos_por_hoyo  18 entradas de 5 bytes (una por hoyo), indexadas por (0xE0B4)-1 desde 0x4586 (0x458D)
+F 0x45a8 5
+
+D 0x40f6 0x410f texto_hud_00  Texto corto del HUD, 15 bytes; 0x4145 lo lee entero o solo los ultimos 11 (desde 0x40FA) segun el bit 6 de (0xE005)
+F 0x40f6 16
+# ======================================================================
+# TABLA DE 18 PUNTEROS EN 0x6299 (0x6289, indexada por (0xE0B4)-1) A
+# LISTAS DE OBJETOS POR HOYO, CONSUMIDAS POR 0x60F8/0x6277 (0x610B)
+# ======================================================================
+# 0x610B llama a 0x6289 (0x6299 + ((0xE0B4)-1)*2, mismo patron de indice
+# que datos_por_hoyo) y recorre el bloque resultante: 1 byte = cuenta N de
+# objetos; por cada uno, 1 byte de tipo + un sub-bloque que procesa 0x60F8
+# (usa 0x6277, y copia 3 bytes mas por iteracion -4 bytes por objeto-.
+# Probablemente coordenadas/atributo de cada elemento del hoyo: arboles,
+# bunkers, banderas -tras el bucle el codigo convierte una posicion de hl
+# en fila/columna de pantalla con rrca x3, coherente con eso-.
+# La tabla (18 punteros/10 unicos) SI tila sin hueco por si sola (el
+# puntero 0 cae justo al terminar la tabla, en 0x62BF). Los limites entre
+# los 10 bloques de abajo estan tomados de la SIGUIENTE direccion de la
+# tabla (prueba solida, la misma que en las demas tablas de punteros), NO
+# de un descifrado completo del formato: simulando en Python el consumo de
+# 0x60F8 (1+N*4 bytes por objeto) sobran unos bytes al final de casi todos
+# los bloques (8-10 de 253-411, un 2-4%) que no se han explicado -queda
+# pendiente, marcado como suposicion, no como hecho cerrado-. El ultimo
+# bloque (0x6969) cierra exacto contra tabla_cuadros_del_golfista (0x6A2B),
+# ya declarada: no hay hueco con una estructura conocida por otra via.
+D 0x6299 0x62bf tabla_objetos_hoyo  18 punteros de 16 bits a listas de objetos por hoyo, indexados por (0xE0B4)-1 desde 0x6289 (0x6290)
+F 0x6299 w6
+D 0x62bf 0x637b objetos_hoyo_01  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x62bf 16
+D 0x637b 0x6413 objetos_hoyo_02  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x637b 16
+D 0x6413 0x64ef objetos_hoyo_03  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x6413 16
+D 0x64ef 0x65da objetos_hoyo_04  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x64ef 16
+D 0x65da 0x6699 objetos_hoyo_05  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x65da 16
+D 0x6699 0x6764 objetos_hoyo_06  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x6699 16
+D 0x6764 0x67d6 objetos_hoyo_07  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x6764 16
+D 0x67d6 0x6892 objetos_hoyo_08  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x67d6 16
+D 0x6892 0x6969 objetos_hoyo_09  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x6892 16
+D 0x6969 0x6a2b objetos_hoyo_10  Lista de objetos del hoyo, consumida por 0x60F8/0x6277 (0x610B); limite tomado de la tabla de punteros, formato interno sin cerrar del todo
+F 0x6969 16
+# ======================================================================
+# EL RESTO DE 0xB3E2-0xBB86: UN SPRITE FIJO, UNA TABLA DE 2, Y OTROS TRES
+# ENCADENADOS POR UN DISPATCH DE 3 VIAS (0x4BF8/0x53A1)
+# ======================================================================
+# 0x5D84 (llamada tras 0x5DEC) descomprime el sprite fijo de 0xB3E2 en
+# 0xE800, y ADEMAS indexa una tabla de 18 punteros en 0xB417 con
+# (0xE0B4)-1 (mismo patron que las demas). Solo 2 direcciones unicas, y
+# tilan sin hueco: 0xB43B para justo en 0xB472 (el otro puntero), y este
+# para justo en 0xB4AE. Esa misma direccion (0xB4AE) es una de TRES que
+# elige un dispatcher por el valor de (0xE114) en 0x4BF8/0x53A1 (a=6 ->
+# 0xB9F0, a=8 -> 0xB777, a=9 (o por defecto) -> 0xB4AE), pasadas a
+# 0x5293 -> 0xA8FB. Las TRES decodifican en cadena sin hueco: 0xB4AE para
+# en 0xB777, 0xB777 para en 0xB9F0, y 0xB9F0 para EXACTO en 0xBB86 -el
+# inicio, ya declarado por otra via, de los bloques de sonido de abajo-.
+# Cierra el hueco entero sin dejar ni un byte suelto.
+D 0xb3e2 0xb417 plano_hoyo_12  Sprite comprimido con el formato de 0xA8FB, llamado con HL fijo desde 0x5D84 (0x5D84), decodificado y verificado en Python (53 bytes fuente, 55 de salida)
+F 0xb3e2 16
+
+D 0xb417 0xb43b tabla_planos_de_hoyo2  18 punteros de 16 bits (solo 2 direcciones unicas), indexados por (0xE0B4)-1 desde 0x5D84 (0x5D93)
+F 0xb417 w6
+D 0xb43b 0xb472 plano_hoyo_13  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (55 bytes fuente, 100 de salida)
+F 0xb43b 16
+D 0xb472 0xb4ae plano_hoyo_14  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (60 bytes fuente, 100 de salida)
+F 0xb472 16
+
+D 0xb4ae 0xb777 plano_hoyo_15  Sprite comprimido con el formato de 0xA8FB, uno de tres elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en Python (713 bytes fuente, 1120 de salida)
+F 0xb4ae 16
+D 0xb777 0xb9f0 plano_hoyo_16  Sprite comprimido con el formato de 0xA8FB, uno de tres elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en Python (633 bytes fuente, 928 de salida)
+F 0xb777 16
+D 0xb9f0 0xbb86 plano_hoyo_17  Sprite comprimido con el formato de 0xA8FB, uno de tres elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en Python (406 bytes fuente, 704 de salida)
+F 0xb9f0 16
+
+# ======================================================================
+# BLOQUES DE SONIDO/ANIMACION EN 0xBB86-0xBD02 (registrados por 0xBD03,
+# formato bytecode NO descifrado -analogo al reproductor PSG de Hole in
+# One, pero no es el mismo formato-)
+# ======================================================================
+# Doce sitios del codigo cargan DE con una de estas doce direcciones y
+# llaman a 0xBD03 (0xBD03, ya trazada), que la guarda como puntero en una
+# estructura de canal en RAM (0xF401+, indexada por B): direcciones reales
+# y confirmadas por doce llamadas de codigo distintas, no una suposicion.
+# Los limites INTERNOS entre los doce bloques NO estan verificados byte a
+# byte -el formato no es 0xA8FB (decomp() revienta al primer intento)- asi
+# que se usan las propias direcciones de la lista, ordenadas, como limite;
+# el conjunto entero cierra exacto contra el codigo conocido en ambos
+# extremos (0xB9F0 antes, 0xBD03 en 0xBD03 despues).
+D 0xbb86 0xbb93 bloque_sonido_01  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbb86 16
+D 0xbb93 0xbbaf bloque_sonido_02  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbb93 16
+D 0xbbaf 0xbbd2 bloque_sonido_03  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbbaf 16
+D 0xbbd2 0xbbec bloque_sonido_04  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbbd2 16
+D 0xbbec 0xbbfc bloque_sonido_05  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbbec 16
+D 0xbbfc 0xbc09 bloque_sonido_06  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbbfc 16
+D 0xbc09 0xbc13 bloque_sonido_07  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbc09 16
+D 0xbc13 0xbc29 bloque_sonido_08  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbc13 16
+D 0xbc29 0xbc78 bloque_sonido_09  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbc29 16
+D 0xbc78 0xbcd3 bloque_sonido_10  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbc78 16
+D 0xbcd3 0xbce6 bloque_sonido_11  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbcd3 16
+D 0xbce6 0xbd03 bloque_sonido_12  Bloque de datos de sonido/animacion, direccion confirmada por codigo (0xBD03); formato bytecode no descifrado, limite tomado de la siguiente direccion de la lista
+F 0xbce6 16
+
+# ======================================================================
+# PANTALLA DE TITULO: TEXTO, LOGOTIPO Y BLOQUES DE ATRIBUTOS (0x42F9-0x44D3)
+# ======================================================================
+# 0x41A9 monta la pantalla de titulo tras INIT32 (SCREEN 1): texto corto,
+# el bloque de 304 bytes del logotipo (copiado tal cual a VRAM por
+# LDIRVM), dos bloques de patrones via 0x44E5 (b=columnas, c=filas, b*c
+# bytes fuente), y una tanda de textos cortos via 0x4145. Todos los
+# limites confirmados por la aritmetica del propio codigo llamante
+# (longitud declarada en B o B*C, cada bloque para justo donde empieza
+# el siguiente dato referenciado).
+D 0x42f9 0x4301 texto_titulo_00  Texto corto de la pantalla de titulo, 8 bytes (0x41A9, 0x4145)
+F 0x42f9 16
+D 0x4301 0x4431 logotipo_titulo  Bloque de 304 bytes copiado tal cual a VRAM (LDIRVM), patrones del logotipo de la pantalla de titulo
+F 0x4301 16
+D 0x4431 0x443a bloque_titulo_00  Bloque de patrones 3x3 via 0x44E5 (0x41DD)
+F 0x4431 16
+D 0x443a 0x447a bloque_titulo_01  Bloque de patrones 16x4 via 0x44E5 (0x41E9)
+F 0x443a 16
+D 0x447a 0x4487 texto_titulo_01  Texto corto de la pantalla de titulo, 13 bytes (0x41EF)
+F 0x447a 16
+D 0x4487 0x4494 texto_titulo_02  Texto corto de la pantalla de titulo, 13 bytes (0x41FA)
+F 0x4487 16
+D 0x4494 0x44a6 texto_titulo_03  Texto corto, 18 bytes, leido DOS veces a dos destinos VRAM distintos (0x4205 y 0x4212)
+F 0x4494 16
+D 0x44a6 0x44b3 texto_titulo_04  Texto corto de la pantalla de titulo, 13 bytes (0x421A)
+F 0x44a6 16
+D 0x44b3 0x44c9 texto_titulo_05  Texto corto de la pantalla de titulo, 22 bytes (0x4225)
+F 0x44b3 16
+D 0x44c9 0x44cc bloque_titulo_02  Bloque de patrones 1x3 via 0x44E5 (0x4230)
+F 0x44c9 16
+D 0x44cc 0x44d3 tabla_atributo_titulo  7 bytes; 0x4296 (0x4296) elige una ventana de 3 dentro (offset 0, 3 o 4) segun flags de (0xE0BA) y el acarreo de A
+F 0x44cc 7
+
+D 0x485a 0x487e textos_puntuacion  Cinco textos de puntuacion de golf con longitud en el primer byte (EAGLE, BIRDIE, PAR, BOGEY, " BOGEYDOUBLE"), leidos por 0x4754/0x4145
+F 0x485a 16
+D 0x487e 0x4885 texto_titulo_06  Texto corto, 7 bytes (0x475C)
+F 0x487e 16
+
+D 0x5e54 0x5e66 tabla_pasos_golfista  18 pasos (tipico 4-6) sumados por 0x5E40 para calcular el indice acumulado de tabla_cuadros_del_golfista
+F 0x5e54 16
+
+D 0x5f32 0x5f3b tabla_direccion_stick  9 bytes, tabla de conversion de la direccion del joystick (0-8, GTSTCK) usada en 0x5F14
+F 0x5f32 16
+
+D 0x6062 0x60a2 tabla_umbral_swing  64 bytes, tabla de umbrales usada en 0x5FE4 (busqueda lineal) y 0x6003 (indexada directa, and 03fh)
+F 0x6062 8
+
+D 0x4a72 0x4a96 tabla_variables_ram  18 direcciones de RAM de 16 bits (rango 0xE00E-0xE112), indexadas por IX/IY desde tres puntos de arranque distintos (0x4a1a, 0x4a20, 0x4a24); proposito exacto no determinado
+F 0x4a72 w6
+
+# ======================================================================
+# HUD DE JUEGO: ETIQUETAS DE TEXTO Y TABLA POR HOYO (0x5A58-0x5AFD)
+# ======================================================================
+# 0x5941 monta el HUD de juego (POWER/CLUB/WIND/HOLE/OUT/IN/PAR, visto en
+# la captura de VRAM real): textos cortos via 0x4145, un par de textos
+# alternativos de 8 bytes segun si el hoyo es < 10 (0xE0B4), una tabla de
+# 18*3 bytes por hoyo (mismo patron que datos_por_hoyo), y termina justo
+# donde arranca el codigo ya conocido de 0x5AFD (0x5AFD): limites
+# confirmados por la aritmetica del propio codigo llamante en cada caso.
+D 0x5a58 0x5a6a texto_hud_01  Texto corto del HUD, 18 bytes (0x5941)
+F 0x5a58 16
+D 0x5a6a 0x5a70 texto_hud_02  Texto corto del HUD, 6 bytes (0x594C)
+F 0x5a6a 16
+D 0x5a70 0x5a78 texto_hud_03a  Texto corto del HUD, 8 bytes, alternativa si el hoyo es menor que 10 (0x5978)
+F 0x5a70 16
+D 0x5a78 0x5a80 texto_hud_03b  Texto corto del HUD, 8 bytes, alternativa si el hoyo es 10 o mayor (0x597D)
+F 0x5a78 16
+D 0x5a80 0x5ab6 datos_hud_por_hoyo  18 entradas de 3 bytes (una por hoyo), indexadas por (0xE0B4)-1 desde 0x5A19
+F 0x5a80 3
+D 0x5ab6 0x5aba texto_hud_04  Texto corto del HUD, 4 bytes (0x5998)
+F 0x5ab6 16
+D 0x5aba 0x5aea texto_hud_05  Texto corto del HUD, 48 bytes (0x59AE)
+F 0x5aba 16
+D 0x5aea 0x5af8 datos_hud_06  14 bytes leidos por 0x59D6 (cuenta+parametro, ocho sub-elementos via 0x4156); formato no cerrado del todo
+F 0x5aea 16
+D 0x5af8 0x5afd bloque_hud_00  Bloque de patrones 1x5 via 0x44E5 (0x5A0C), termina justo donde arranca 0x5AFD
+F 0x5af8 16
+
+D 0x4d2f 0x4d49 tabla_terreno_a  13 entradas de 2 bytes indexadas por (0xE073) desde 0x4CC4 (LDIRVM, 2 bytes por entrada)
+F 0x4d2f 2
+D 0x4d49 0x4d56 tabla_terreno_b  13 entradas de 1 byte indexadas por (0xE073) desde 0x4CB2
+F 0x4d49 16
+
+D 0x4ecd 0x4ef1 tabla_terreno_c  12 entradas de 3 bytes indexadas por (0xE073) desde 0x4E1B
+F 0x4ecd 3
+
+D 0x5184 0x51ac datos_5184  40 bytes copiados por LDIRZ a RAM 0xEF00 desde 0x515A; leidos tambien al reves desde 0x51A3 (56 bytes) para una version espejada, solapando con esta tabla y con codigo ya explicado
+F 0x5184 8
+
+D 0xbfc2 0xbfd5 tabla_bfc2  19 bytes, indexada por 1 byte desde 0xBD1E (cola de tabla_despacho)
+F 0xbfc2 16
+D 0xbfd5 0xbfed tabla_bfd5  12 punteros de 16 bits, indexados desde 0xBEBF
+F 0xbfd5 w6
+D 0xbfed 0xc000 tabla_bfed  19 bytes al final del cartucho, base para un indexado de 8 en 8 desde 0xBF57; el ultimo tramo se trunca en el limite fisico de la ROM
+F 0xbfed 16
+
+# ======================================================================
+# BLOQUES DE DATOS DE PUNTUACION/RECORRIDO EN 0x4FC9-0x5155 (mecanismo
+# entendido, particion interna NO cerrada -honesto, no forzado-)
+# ======================================================================
+# 0x4F40 (0x4f40) elige entre TRES pares (HL,DE) segun una comparacion
+# previa: HL apunta a un bloque que SIEMPRE se copia con LDIR de 54 bytes
+# fijos (0x36) a RAM 0xEE80; el DE original se recupera despues (pop hl a
+# partir de 0x4f7e) y se usa como una SEGUNDA direccion. Ademas, dentro de
+# este mismo tramo, 0x40AF/0x40C2 llaman a 0x411A con HL=0x5031 o 0x5032
+# (un byte de diferencia, prefijo compartido) para un bloque de 36 O 72
+# bytes segun el bit 6 de (0xE005) Y el valor en runtime de (0xE09A)/
+# (0xE09C) -medido en el arranque como 0, pero sin confirmar en partida
+# real, ver el comentario de 0x411A mas arriba-. Las direcciones de estos
+# dos mecanismos SE SOLAPAN entre si (0x5031+72=0x5079 cae dentro del
+# rango de las otras), asi que la particion byte a byte de este tramo
+# depende de estado de RAM en partida real y NO se ha podido cerrar de
+# forma estatica tras varios intentos -documentado como tal, no forzado a
+# una particion falsa-. El mecanismo SI esta entendido; el reparto exacto
+# de estos 396 bytes entre las nueve-y-pico direcciones implicadas, no.
+D 0x4fc9 0x5155 datos_puntuacion  Bloques de datos de puntuacion/recorrido con solape entre si (0x4F40, 0x411A); mecanismo entendido, particion interna sin cerrar
+F 0x4fc9 16
+C 0x5afd Indice de hoyo/terreno en (0xE0B4): 0xA875 monta el fondo del campo antes de animar al golfista
+C 0x5b0d Tabla de sprites del golfista en 0x6A2B, indexada por el fotograma acumulado que calcula 0x5E40
+C 0x5b1a Descomprime el primer sprite del golfista (postura del fotograma) en RAM 0xEA00
+C 0x5b27 Segundo sprite, un fotograma mas adelante en la tabla (byte alto de (0xE0B4) como desplazamiento extra), en RAM 0xEA69
+
+C 0x612a Cuenta de bytes del objeto actual, leida de la lista de objetos del hoyo
+C 0x612c Cada objeto lo procesa 0x60F8/0x6277 (coordenadas/atributo del elemento del hoyo)
+C 0x6139 Comprueba si el hoyo actual coincide con el ultimo fotograma de 0x5E40; si es asi, procesa dos objetos extra
+C 0x6150 Convierte la posicion guardada en fila/columna de pantalla (desplazamientos de 3 bits, rrca x3)
+
+C 0x5d84 Descomprime el sprite fijo de terreno en 0xB3E2 (RAM 0xE800)
+C 0x5d93 Tabla de 18 punteros en 0xB417, indexada por (0xE0B4)-1: el otro sprite del par de fondo
+C 0x5d9f Descomprime el sprite elegido en RAM 0xEA00
+
+C 0x415b Manejador de interrupcion TEMPORAL de arranque: llama primero al definitivo (0x4B8A)
+C 0x415e Bit 7 de (0xE002): si ya esta activo no repite la inicializacion de abajo
+C 0x416a Cadena de inicializacion de arranque: sonido, entrada, datos por hoyo, HUD y demas subsistemas
+C 0x4184 Si (0xE072) esta a multiplo de 4, refresca el mensaje de la parte inferior de pantalla
+
+C 0x4602 Despacho por bits de (0xE001): cada bit activo pide una accion distinta (rlca sucesivos van mirando el acarreo)
+C 0x461b Ningun bit activo: si (0xE0BA)>=0xC0 no hace nada, si no copia (0xE006) a (0xE005)
+C 0xa8fb Descompresor RLE propio del campo. Cabecera de 2 bytes: cuenta de bytes FUENTE que quedan por consumir
+C 0xa900 Byte normal: copia literal (ldi copia y descuenta bc, jp pe repite mientras bc!=0)
+C 0xa90c Byte 0xFF: racha -los dos siguientes son [cuenta][valor]-, escribe 'valor' esa cuenta de veces
+
+C 0xa875 Limpia el buffer de terreno en RAM (0xE800-0xE9FF, 512 bytes)
+C 0xa886 Segun el tipo de terreno en A (por la pila): 2,4,5,7,9,0xC,0xD usan un sprite de fondo, el resto otro
+C 0xa8ae Descomprime el sprite de fondo elegido en 0xE902, y ademas el sprite de terreno correspondiente en 0xE800
+
+C 0x4145 Copia B bytes de HL a VRAM DE (LDIRVM); helper de texto/patrones usado por casi toda la pantalla de titulo y el HUD
+C 0x6277 Convierte un codigo de tile (0-255) en su direccion dentro del buffer de terreno 0xE800 (tile>>4 * 4 + base)
+C 0x6289 Tabla de 18 punteros en 0x6299, indexada por (0xE0B4)-1: lista de objetos del hoyo actual (arboles, bunkers...)
+C 0x5e40 Suma los B-1 primeros pasos de tabla_pasos_golfista y devuelve el acumulado en C (indice de fotograma) y el paso actual en B
+C 0x610b Limpia el buffer de terreno (0xE800-0xE9FF) y procesa la lista de objetos del hoyo (0x6289) uno a uno con 0x60F8
+C 0x4586 Lee la entrada de datos_por_hoyo del hoyo actual (0xE0B4): tipo de terreno a (0xE0A0)/(0xE09F), y 4 parametros a (0xE0A1)-(0xE0A4)
+C 0x419b Apaga pantalla, fija el color y entra en SCREEN 1 para montar la pantalla de titulo
+C 0x41b4 Copia el logotipo (304 bytes, patrones tal cual) a VRAM
+C 0x41c0 Rellena de color los dos tercios superiores de la pantalla (0x4156)
+C 0x41dd Bloques de patrones del logotipo (3x3 y 16x4) via 0x44E5
+C 0x41ef Textos de la pantalla de titulo (autor, copyright, menu de jugadores)
+C 0x423c Enciende la pantalla ya montada
+C 0x423f Hoyo inicial = 1, contador de golpes a cero
+C 0x424e Engancha el manejador de interrupcion DEFINITIVO (0x4B8A) en H.TIMI
+C 0x425d Otra fase de inicializacion (0x42E9) antes de esperar la entrada del jugador
+C 0x5f3b Multiplicacion de 8x8 bits (H*L), suma y desplaza 8 veces
+C 0x4e1b Lee tabla_terreno_c del terreno actual (0xE073) y multiplica sus parametros por (0xE092) con 0x5F3B
+C 0x4e3b Guarda el resultado como limite/distancia en (0xE01C)
+C 0x4e57 Compara la altura acumulada (0xE0BA) contra el limite del terreno; marca el bit 0 de (0xE06D) si se supera
+C 0x5e78 Base de tabla_patrones_terreno (0x8B5E), indexada por el codigo de tile (*8)
+C 0x5e7c Si (0xE0A0) bit 7 esta activo, espeja el patron bit a bit (rlc/rra) antes de copiarlo a VRAM
+
+C 0x44e5 Copia C filas de B bytes cada una (0x4145), avanzando el destino una fila de VRAM (32 bytes) por iteracion
+
+C 0xa8cb descomprime con 0xA8FB y despues separa cada byte con un cero, recorriendo el buffer HACIA ATRAS para no pisarse: la tira pasa a ser de valores de 16 bits
+C 0x5e69 Guarda una copia extra del parametro (codigo de tile) para el calculo final
+C 0x459f Copia los 4 parametros restantes de la entrada a (0xE0A1)-(0xE0A4)
+C 0x533b Monta un nuevo hoyo: numero de hoyo y par en pantalla, y la posicion inicial de la bola
+C 0x536c Copia la posicion de salida de la bola a las variables de trabajo (0xE08E/0xE090)
+C 0x537e Nueva racha de viento: usa el registro R de refresco como fuente pseudoaleatoria
+C 0x5388 Prepara el terreno/vista del nuevo hoyo (0x5578)
+C 0x5391 Fija el puntero de datos de puntuacion (0xE112) a 0x5088 y el sprite del golfista inicial
+C 0x53a6 Dibuja el sprite fijo de salida (plano_hoyo_15) con 0x5293
+C 0x53b1 Calcula la posicion de camara/vista a partir de la posicion de la bola (0x5F3B, 0x600F)
+C 0x6212 Calcula la posicion en pantalla de un elemento del hoyo a partir de su codigo (tipo+coordenada, dos multiplicaciones con 0x5F3B)
+C 0x6236 Combina las dos coordenadas calculadas con el desplazamiento de camara (E,D)
+C 0x623c Segun el nibble bajo de (ix+0): si es cero no dibuja nada; si el bit 3 esta activo usa una paleta distinta
+C 0x5982 Texto HUD (hoyo simple/doble digito) y numero de hoyos restantes en pantalla
+C 0x5998 Texto "PAR" y su valor en pantalla
+C 0x59ae Etiquetas fijas del HUD (POWER/CLUB/WIND/HOLE/OUT/IN)
+C 0x59b9 Rellena de color las tres franjas de la pantalla de juego
+C 0x59d6 Monta el sprite fijo de terreno inicial (0x5DEC)
+C 0x59db Coloca ocho iconos de viento en pantalla, uno por direccion
+C 0x5491 Suma con acarreo un vector de 3 bytes (posicion + velocidad de la bola en vuelo)
+C 0x54a2 Redibuja el terreno tras mover la bola
+C 0x54a5 Calcula la nueva coordenada de pantalla de la bola (0x5559) y la guarda
+C 0x54bd Si la posicion entera cambio respecto al fotograma anterior, sigue redibujando la bola
+C 0x411a Guarda HL como puntero fuente en (0xE053); longitud base 0x24 o 0x48 segun el bit 6 de (0xE005)
+C 0x412a Copia el bloque calculado (0x4797) y espeja en alto los 7 bytes de (0xE057)
+C 0x42b5 Engancha el manejador temporal 0x44D3 en H.TIMI y monta la pantalla de juego (0x44F3)
+C 0x42e9 Registra dos bloques de sonido fijos (canales 0 y 1) via 0xBD03
+C 0x4527 Rellena una fila de patron con 0xC2 (blanco/relleno)
+C 0x46c4 Si la fila resultante se sale de pantalla (>=0xB0) no dibuja; si no, usa el patron 0xC2
+C 0x47bb Normaliza restando 100 repetidamente, contando las centenas en B
+C 0x4a9b Si el bit 6 de (0xE000) no esta activo, usa el puntero de la segunda mitad (0xE09C)
+C 0x4c9e Marca en A si el terreno actual es el especial (tipo 0x0C)
+C 0x4cfd Compara la posicion normalizada contra el limite E; si es menor, la guarda
+C 0x52e1 Si el numero de intentos (0xE0BF) es menor que 8, no hace nada; si no, redibuja algo (0x4F2D)
+C 0x53e1 Repite la rotacion de 3 bytes (0x5480) tantas veces como indique A
+C 0x554b Elige el puntero (0xE09A) o (0xE09C) segun el bit 6 de (0xE000)
+C 0x5809 Avanza el puntero 4 posiciones y repite el bucle exterior
+C 0x5853 Guarda el resultado de 0x46B3 en (0xE116) y restaura registros
+C 0x5b41 Si (0xE0A0) bit 7 esta activo, desplaza el puntero 0x14 posiciones
+C 0x5b50 Segun el bit 7 del byte leido (0x5B61), retrocede o no el puntero
+C 0x5b81 Si la fila se sale de pantalla, marca C y usa el patron de relleno 0xC2
+C 0x5e47 Bucle de suma de tabla_pasos_golfista: acumula en A mientras cuenta en C
+C 0x5f4c Prepara un bucle de 0x11 (17) iteraciones sobre el vector de entrada
+C 0x5f61 Divide por reste sucesiva (DE), cuenta el cociente en C
+C 0x5f76 Restaura registros y vuelve
+C 0x5f81 Bucle de resta doble (division entera aproximada por 2*DE)
+C 0x5f8f Valor absoluto de H-D (distancia sin signo)
+C 0x5fbf Valor absoluto de E-L, marca el signo en el bit 7 de B
+C 0x5fea Busqueda lineal: cuenta en C cuantas entradas de la tabla son menores que A
+C 0x6028 Invierte el valor (complemento a 2 + 0x40) antes de llamar a 0x6032
+C 0x625b Si (0xE0A0) bit 7 esta activo, refleja la fila (0xA8-H)
+C 0x6267 Recorta la fila resultante al rango de pantalla valido (0x20-0xE0)
+C 0xbd7b Recorre los 16 canales de sonido/animacion (paso de 0x20 en IX), uno por bit de (0xF400)
+C 0xbe31 Recoge un bit mas del flujo de bytecode del canal
+C 0xbe58 Prepara la lectura de 8 sub-elementos del canal (IX+8 en adelante)
+C 0xbf18 Reinicia el puntero de reproduccion del canal (IX+3/4) a su valor de partida (IX+0xF/0x10)
+C 0x42d9 Si se pulsa el boton de disparo (0xE004 bit 6) reinicia el cartucho; si no, espera a que (0xE0BA) llegue a 0x60
+C 0x4660 Combina la posicion (0xE0BA) con el fotograma (0xE072); si (0xE0A0) bit 5 esta activo marca el bit alto
+C 0x4797 Guarda HL como puntero fuente en (0xE055); elige patron 0xAB o 0xAD segun el signo de B
+C 0x47ee Limpia (0xE0C0), marca el bit 6 del byte y prepara un bucle de 50 pasos sobre (0xE12A)
+C 0x48b4 Si el terreno no es el especial (0x0C), registra un bloque de sonido en el canal 2
+C 0x4a2a Elige entre dos tablas (0x4A7E/0x4A8A) segun el bit 6 de (0xE000)
+C 0x4b23 Rellena una columna de VRAM (paso de 4) con el valor de A
+C 0x4b68 Normaliza el signo de D,E rotando D a la izquierda si desborda
+C 0x4c62 Compara el terreno con B; si lo iguala o supera, satura a 0xFF
+C 0x4d75 Avanza el angulo (0xE092) en 5 unidades, invirtiendolo si se pasa de rango
+C 0x4d80 Calcula la posicion trigonometrica aproximada del angulo (0x5F3B)
+C 0x4d9b Bucle interno de la tabla trigonometrica
+C 0x4e0e Calcula el complemento a 100 del resultado y lo guarda en (0xE0DF)
+C 0x51ac Segun los bits 0/1 de (0xE076), decide si reprocesa el disparo o continua
+C 0x5282 Calcula una posicion de pantalla a partir de (0xE0A6) y la guarda en (0xE020)
+C 0x559e Convierte una coordenada de pantalla en fila/columna de caracter (limites 0xB0/0x50)
+C 0x59e1 Lee tipo y valor de un icono de viento de la lista
+C 0x5d66 Prepara un bucle de relleno de 21 valores consecutivos
+C 0x5e21 Lee un byte de la tabla y retrocede el puntero un paso extra si es negativo
+C 0x5f69 Division/multiplicacion por 2 simultanea, desplazando DE a la derecha y BC a la izquierda
+C 0x600f Calcula la negacion de BC (0-BC) tras la conversion de 0x601B
+C 0x6186 Convierte el tile en direccion (0x6277); si no esta vacio, sigue leyendo
+C 0x6206 Ajusta la coordenada segun el bit 4 de C antes de las multiplicaciones
+C 0xa8dc un cero y el byte, hacia atras: cada byte de la fuente ocupa ya dos, byte bajo y cero
+C 0xa91e Resta DE de HL y guarda la diferencia en BC
+C 0xbd03 Guarda DE como puntero del bloque en la estructura del canal (IX) y lo activa
+C 0xbea4 Compara con 0xBE90; si son iguales, va al reproductor principal (0xBD60)
+C 0xbf62 Calcula una direccion de tabla desplazando por los bits de B
+C 0x44d3 Manejador de interrupcion definitivo mas comprobacion de (0xE0A8) bit 4: si esta activo, fuerza (0xE004)
+C 0x46e3 Combina las posiciones de los dos jugadores para el calculo de distancia (0x4740)
+C 0x472e Reinicia hoyo, terreno y angulo inicial (0x80) al empezar partida
+C 0x47e0 Segun el bit leido, decide si redibuja el marcador de golpe segun (0xE0C0)
+C 0x48ef Registra el primer bloque de sonido (canal 2) y encadena el refresco de terreno, HUD y viento
+C 0x4c80 Si (0xE077) esta activo, redibuja el terreno y fuerza el tipo especial (0x0C)
+C 0x4cec Calcula un desplazamiento y elige parametro segun si el terreno es el especial
+C 0x4d56 Si (0xE0A8) bit 4 esta activo, invierte el angulo de tiro (0xE092)
+C 0x4d65 Guarda el angulo, reinicia (0xE0BD) y fuerza el paso de animacion (0xE06C)=0x10
+C 0x5325 Combina las posiciones de los dos jugadores (variante) para 0x4740
+C 0x561c Segun los bits de (0xE007), elige el patron del indicador (0xE11A)
+C 0x5e11 Si (0xE0A0) bit 7 esta activo, desplaza el puntero 9 posiciones
+C 0x5ff3 Convierte el signo de B/C en un valor con signo unico (complemento o suma 0x80)
+C 0x6043 Indexa tabla_umbral_swing con el resto (0-63) y sigue en 0x5915
+C 0x61bf Si el bit 0 de B esta activo, mezcla el nibble bajo de C en el atributo del elemento (ix+0)
+C 0x61ce Lee el siguiente byte de la lista y marca bits del elemento segun su signo
+C 0xbe25 Division/desplazamiento con signo, ajusta el resto en la pila
+C 0xbe68 Cuando el contador llega a cero, reordena el nibble y salta al reproductor principal
+C 0x47a5 Prepara los parametros de dibujo del marcador de golpe (0xE057-0xE05B)
+C 0x48d4 Copia posicion y datos del otro jugador a las variables activas del turno
+C 0x4b09 Avanza el hoyo (0xE0B4); si llega a 19 termina la ronda, si llega a 10 cambia de recorrido
+C 0x4c2e Si (0xE0A7) bit 4 esta activo, reinicia angulo y potencia y redibuja el terreno
+C 0x4d1e Calcula una fila de VRAM; si (0xE0BA) bit 4 no esta activo, usa el patron 0xC2
+C 0x4f7b Recupera la segunda direccion (DE original de 0x4F40) y calcula su tabla con 0x5F3B
+C 0x5155 Copia los primeros 40 bytes a 0xEF00 y lee los 56 siguientes hacia atras (version espejada)
+C 0x542b Fija los limites de pantalla por defecto; si (0xE0BA) bit 4 esta activo, ajusta el color de borde
+C 0x5440 Registra otro bloque de sonido segun el signo del angulo de tiro actual
+C 0x56e2 Si (0xE0AD) llega a 17, incrementa (0xE034) y comprueba su bit 0
+C 0x5742 Calcula la velocidad segun el signo de (0xE01D), con un factor de (0xE072)/4
+C 0x57ca Calcula dos coordenadas de camara con 0x5F4C y 0x6056
+C 0x58d3 Comprueba si (0xE01B) esta dentro de un rango y activa/desactiva el bit 0 de (0xE008)
+C 0x5eba Bucle de suma de deltas de la cadena de sprites de terreno (avanza hl sumando cada cabecera)
+C 0x5fb2 Valor absoluto de D-H, marca el signo en el bit 6 de B
+C 0x601b Convierte el angulo en coordenada X,Y encadenando 0x6032 y 0x6028
+C 0x6056 Calcula la negacion de DE (0-DE)
+C 0x6191 Escribe C en el atributo del elemento; si el bit 2 esta activo, pasa a otro estado
+C 0x624b Si hay acarreo, calcula un fotograma de golpe especial usando (0xE0B3)
+C 0x4132 Espeja en alto los 7 bytes restantes y prepara el puntero final de copia
+C 0x46b3 Calcula 0x7E menos la fila como nueva columna; el signo de (0xE0A0) elige la paleta
+C 0x49a0 Activa dos senales de sonido y fuerza el color del indicador
+C 0x49b9 Registra un tercer bloque de sonido y ajusta un contador segun el signo de (0xE075)
+C 0x49f0 Guarda la posicion inicial del jugador y sigue en 0x48EF (sonido/HUD)
+C 0x4bc0 Si los intentos (0xE0BD) superan 0x60, calcula una nueva posicion de camara
+C 0x4bf8 Elige uno de tres sprites fijos (dispatch de 3 vias) segun (0xE114)
+C 0x4dfd Si (0xE0A8) bit 4 no esta activo, incrementa el angulo en 5 unidades
+C 0x4f10 Si los intentos (0xE0BD) llegan a 8, los reinicia y compara (0xE06E) contra 6
+C 0x52cd Si los intentos (0xE0BF) llegan a 8, los reinicia y marca (0xE077)
+C 0x58ff Suma un vector de 2 bytes a la estructura de posicion (IX)
+C 0x5e8d Bucle de espejado bit a bit (rlc/rra), copia el resultado a VRAM
+C 0x6032 Si A es 0x40 o 0xC0 no hace nada; si el bit 6 esta activo invierte A
+C 0x611a Limpia el buffer de terreno antes de procesar la lista de objetos del hoyo
+C 0xa912 Bucle de copia hacia adelante de la racha (parte del descompresor 0xA8FB)
+C 0x4045 Monta la pantalla de juego, limpia flags de sonido/entrada y engancha el manejador temporal 0x415B
+C 0x42c5 Espera entrada, ejecuta 0x593B/0x4754, avanza el hoyo si es menor que 0x12 o reinicia si no
+C 0x4834 Dibuja el marcador de golpes actual (7 bytes) y el texto siguiente (6 bytes)
+C 0x4905 Decrementa el contador leido de 0x554B y ramifica segun su valor final
+C 0x4aa7 Calcula la diferencia con signo entre el terreno y (hl), saturada aproximadamente entre 0 y 99
+C 0x4c10 Guarda el parametro de sonido, dibuja el sprite fijo elegido (0x5293) y fija los parametros de animacion
+C 0x4dbb Si el terreno no es el especial, el angulo es alto y los intentos llegan a 8, redibuja (a=3)
+C 0x4eb6 Guarda la nueva posicion, reinicia los intentos, redibuja (a=2) y fija el paso de animacion a 4
+C 0x5578 Calcula la coordenada de camara Y eligiendo entre las posiciones del jugador 1 o 2 (bit 6 de 0xE000)
+C 0x5755 Guarda el indicador de viento/direccion; calcula una diferencia de posiciones si el hoyo es corto
+C 0x5810 Acumula la posicion de los dos jugadores (0x58FF), redibuja e incrementa el contador de fotogramas
+C 0x58bb Resta 8 al contador de distancia; si llega a 0, lo reinicia y marca el acarreo
+C 0x5a46 Recorre 21 filas avanzando el puntero de datos y el destino de VRAM en paralelo (relleno del HUD)
+C 0x5b8b Guarda el valor en la columna; si el hoyo es menor que 9, reinicia el paso de animacion
+C 0x5dd9 Dibuja un patron de terreno (0x5E66) y descomprime el siguiente sprite de la cadena (0x5EA5)
+C 0x6169 Comprueba si la columna cae en la franja central/agua y activa los bits correspondientes del elemento
+C 0xbebb Indexa tabla_bfd5 (12 punteros) con el doble de A; si C no es cero, continua en otra rama
+C 0x6293 Suma el indice al puntero base de la tabla y lee el puntero final de 16 bits
+C 0xbec6 Si C es cero, usa el puntero calculado tal cual
+C 0x617b Si cae en la franja derecha, activa el otro bit y limpia A
+C 0x404a Pone (0xE001) a 0x80 (bit de arranque) y limpia flags de entrada/sonido
+C 0x42c9 Refresca el marcador de golpes (0x4754) antes de comprobar el limite de hoyos
+C 0x483d Recupera el puntero y salta al segundo texto del marcador
+C 0x4909 Si el contador llega a 1, redibuja el marcador especial (0xE09F=5)
+C 0x4aae Ajusta el resultado sumando el siguiente byte de la tabla
+C 0x4c1b Fija los limites de camara por defecto (0xE0E4/0xE0DE/0xE0E0)
+C 0x4dcc Si los intentos no llegan a 8 no hace nada mas
+C 0x4ec7 Fija el paso de animacion a 4 tras el nuevo golpe
+C 0x558c Lee la coordenada horizontal correspondiente al jugador elegido
+C 0x575e Si el hoyo es corto, usa el byte leido de (hl) directamente
+C 0x581e Reordena las posiciones dibujadas tras acumular el movimiento (0x587B)
+C 0x58c7 Si la resta no llega a cero, sigue contando en la siguiente pasada
+C 0x5a4f Avanza tanto el origen de datos como el destino de VRAM una fila mas
+C 0x5b92 Compara el hoyo actual contra 9 para decidir si toca reiniciar
+C 0x5de2 Avanza el puntero de datos 0xB (11) posiciones tras cada patron dibujado
+C 0x40a8 Prepara los datos del jugador 1 (0x411A) para el HUD
+C 0x40be Si el modo es a dos jugadores (bit 6 de 0xE000), prepara tambien los del jugador 2
+C 0x40d1 Espera a que el canal de sonido (0xF403) quede libre antes de continuar
+C 0x40df Registra dos bloques de sonido iniciales en los canales 0 y 1
+C 0x46cc Segun los bits de (0xE000), activa o desactiva el bit 6 (turno/modo)
+C 0x46d9 Si ninguna condicion especial se cumple, deja el bit 6 activo
+C 0x4740 Compara dos valores absolutos con signo (0x5F8F) para decidir el turno
+C 0x474e Segun cual sea mayor, activa o desactiva el bit 6 de (0xE000)
+C 0x47fc Rellena una fila con espacios; el color del marcador depende del jugador (0, 1 o resto)
+C 0x480b Jugador 2: usa un color distinto y sigue en 0x484B
+C 0x4aba Guarda A y comprueba si B+0x85 desborda
+C 0x4ac3 Si desborda, registra dos bloques de sonido extra (impacto fuerte)
+C 0x4d06 Guarda el viento actual como base y convierte la posicion de camara (0x601B)
+C 0x4d12 Calcula la diferencia con signo entre la coordenada de camara y B
+C 0x4ef1 Si los intentos llegan a 8, los reinicia y redibuja (a=4)
+C 0x4eff Segun el bit de (0xE06D), ajusta (0xE007) al valor por defecto
+C 0x5559 Segun el signo, invierte el valor (0x6056) antes de escalarlo (0x5915)
+C 0x5565 Si el resultado escalado es cero, lo deja en -1
+C 0x55ff Si A es menor que 0x40, lo multiplica por 8 (0x5F3B) preservando el signo
+C 0x560d Satura el resultado a positivo si se paso de rango
+C 0x572d Si el valor supera 0x39 y queda margen, decrementa el contador y ajusta la camara (0x5CA8)
+C 0x573f Resta 8 a la coordenada de camara (0xE023) y continua en 0x56FB
+C 0x58eb Suma dos bytes consecutivos de la tabla y guarda el resultado
+C 0x58f2 Segun el signo del byte anterior, suma o resta DE al resultado
+C 0x5915 Escala H por A y L por A (dos llamadas a 0x5F3B) y combina el resultado en HL
+C 0x5921 Suma las dos partes escaladas
+C 0x5cfc Dibuja una fila de 24 columnas de patron (0x5C6B)
+C 0x5d0b Repite el dibujado de la fila para el siguiente tercio de pantalla
+C 0x5eec Calcula un multiplicador base (1 o 2) segun los bits de (0xE000)
+C 0x5efb Ajusta el multiplicador si el segundo bit tambien esta activo
+C 0xbe90 Intercambia D y E con el juego de registros alterno
+C 0xbe95 Guarda el resultado en la estructura del canal (IX+5/6/7)
+C 0x4a3f Copia dos bloques de datos comunes (parametros 2 y 3) a la estructura de ambos jugadores
+C 0x4a46 Cada bloque lo copia 0x4A54 (IX/IY en paralelo)
+C 0x4da9 Rellena 8 filas de VRAM con el valor de (DE), avanzando la fila cada vez (FILVRM)
+C 0x4db5 Avanza el destino a la siguiente fila y el origen al siguiente valor
+C 0x4f5f Copia siempre 54 bytes fijos al buffer de staging (0xEE80)
+C 0x4f72 Si el terreno es el especial (0x0C), ajusta el parametro extra
+C 0x55a8 Calcula la posicion relativa al punto de salida, invirtiendo el signo si es negativa
+C 0x55b2 Multiplica por 4 (add hl,hl x2) y descarta el byte bajo
+C 0x57e1 Si (0xE113) supera 0xA4, fuerza un refresco (0x52FA)
+C 0x57ef Si la distancia (0xE01A) es distinta de cero, tambien refresca; si no, limpia el indicador
+C 0x585d Comprueba varias condiciones (limite de camara, hoyo cercano, terreno) antes de decidir
+C 0x5872 Si ninguna se cumple y el nibble bajo es cero, no hace nada mas
+C 0x5a2c Dibuja el marcador de golpe (0x4145) y un caracter de separacion
+C 0x5a3b Monta el sprite inicial del golfista (0x5AFD) en la posicion de salida
+C 0x5c28 Dibuja una fila de 24 columnas repetidamente para toda la pantalla
+C 0x5c3a Ajusta la posicion de scroll vertical (-21) al terminar
+C 0x5f01 Multiplica dos valores con 0x5F14 (angulo/potencia)
+C 0x5f0a Combina el resultado con el parametro de dificultad (0xE0A7)
+C 0x60f8 Procesa un objeto del hoyo: calcula su direccion (0x6277) y copia 3 bytes de atributo
+C 0x6108 Repite para cada objeto del sub-bloque (djnz)
+C 0x61a3 Si el bit 3 del valor sigue activo, continua leyendo (0x6186)
+C 0x61b3 Si no, ajusta los bits del elemento segun si cae antes o despues del limite (0x10)
+C 0xbe0f Si el canal ya esta silenciado (ix+0xb=0x10) no hace nada
+C 0xbe1b Calcula la direccion base del bloque de sonido a partir de (ix+5)/(ix+6) (*16)
+C 0x4a56 Copia A bloques de 2 bytes de la estructura IX a la IY
+C 0x4a66 Avanza ambos punteros (IX, IY) tras cada bloque
+C 0x4bd7 Calcula el viento actual (0xE070/0xE06F) con 0x5FB2
+C 0x4be3 Monta la lista de objetos del hoyo (0x610B) y el sprite correspondiente (0x4B3C)
+C 0x4c44 Si (0xE077) bit 6 esta activo o no hay angulo (0xE0A8=0), no hace nada
+C 0x4c52 Elige entre dos parametros segun los bits de (0xE06D)/(0xE069)
+C 0x4fb7 Guarda el resultado en el buffer y calcula la posicion de VRAM de la siguiente entrada (c*4+0x60)
+C 0x4fc0 Avanza el puntero de destino dos posiciones
+C 0x55bc Calcula la posicion relativa al punto de llegada, invirtiendo el signo si es negativa
+C 0x55c7 Multiplica por 4 y descarta el byte bajo
+C 0x5831 Calcula la posicion de camara con 0x46B3 para el jugador activo
+C 0x5843 Segun el bit 6 de (0xE000), usa las variables del jugador 1 o 2
+C 0x5b2d Lee el caracter de VRAM en esa posicion (nombre de patron)
+C 0x5b3b Lo transforma con 0x5B41
+C 0x5e2c Avanza los punteros de datos y VRAM para la siguiente columna del elemento
+C 0x5e37 Y para la siguiente fila del elemento
+C 0xa8bc Indexa tabla_vistas_de_terreno con el terreno actual (-1)*2 y descomprime el sprite de terreno en 0xE800
+C 0x5f9e Calcula A al cuadrado y D al cuadrado (0x5F3B), los suma
+C 0x5fab Toma la raiz cuadrada aproximada de la suma (0x5F7C): distancia diagonal
+C 0x4265 Si el canal de sonido esta libre, prepara los valores del disparo (0x5EEC)
+C 0x4277 Segun los bits de (0xE0A8), decide la rama de disparo (normal, especial o par)
+C 0x492c Registra sonido en el canal 2 y calcula un valor pseudoaleatorio con (0xE0B9) xor (0xE072)
+C 0x494a Compara la distancia horizontal con 0x5F8F para decidir si el golpe entra
+C 0x49d7 Recorre los objetos del hoyo hasta encontrar uno con el atributo activo, o hasta superar el limite (0x80)
+C 0x49e6 Si no encuentra ninguno valido, sigue con el siguiente objeto
+C 0x4ad7 Guarda el parametro de sonido y redibuja el marcador (0x4754)
+C 0x4ae8 Segun los bits de (0xE000), activa flags de sonido o pasa al siguiente estado
+C 0x4e9c Invierte y escala el valor con el viento actual (0x5F3B)
+C 0x4ea6 Convierte el resultado en coordenada de pantalla (0x601B)
+C 0x5242 Guarda el puntero de datos de puntuacion como nuevo limite de camara (0xE022/0xE01E)
+C 0x5257 Compara la posicion actual contra ese limite, invirtiendo el signo si hace falta
+C 0x525f Calcula la coordenada de camara Y a partir de (0xE0A6)
+C 0x527c Compara la distancia horizontal contra el limite de camara
+C 0x5527 Si la posicion de cualquier jugador supera el borde de pantalla (0x4C), no hace nada
+C 0x553b Si no, reinicia los intentos y redibuja (marcador y terreno)
+C 0x5d35 Lee el caracter de VRAM en la posicion de scroll actual
+C 0x5d4d Ajusta el color si el valor leido supera el umbral (0x60)
+C 0x5d70 Rellena una fila con valores incrementales (0-20)
+C 0x5d79 Copia la fila completa a VRAM (21 bytes)
+C 0x6158 Si la fila esta fuera del rango normal, marca el bit de arbol o agua segun el umbral
+C 0xbf47 Guarda E como parametro del canal de sonido
+C 0xbf51 Si el nibble bajo tiene un tono especial, calcula su direccion base (0xBFED+nibble*8)
+C 0x627e Divide por 16 (rrca x4) y multiplica por 4 (add hl,hl x2): direccion del grupo de tiles
+C 0xa8d2 guarda la longitud de salida, que es la cuenta del bucle de separacion
+C 0x4dda Si los intentos (0xE0BD) no llegan a 8, no hace nada
+C 0x4de5 Calcula el limite de camara escalando el angulo de tiro (0xE092)
+C 0x51c5 Acumula la velocidad en las cuatro posiciones de los dos jugadores (0x58FF)
+C 0x51e1 Calcula la camara (0x5831) y el nuevo puntero de datos de puntuacion (0xE112)
+C 0x51f4 Registra un bloque de sonido y calcula la trayectoria inicial (0x52EE, 0x601B)
+C 0x520d Guarda la velocidad calculada como incremento de posicion (0xE010/0xE016)
+C 0x5227 Acumula el incremento de posicion tantas veces como indique A (potencia del golpe)
+C 0x5233 Monta la lista de objetos del hoyo en la posicion final y marca si cambio de jugador
+C 0x5454 Calcula la posicion de camara con el viento actual (0x601B)
+C 0x546a Normaliza las dos posiciones calculadas (0x53EA) y reinicia el contador de intentos
+C 0x562c Registra sonido, limpia distancias y flags, y copia el bloque de posicion inicial (16 bytes)
+C 0x5650 Reinicia el contador de hoyos jugados
+C 0x5926 Repite la logica de 0x6289 (tabla_objetos_hoyo) de forma independiente
+C 0x5930 Indexa la tabla de objetos del hoyo con (0xE0B4)-1
+C 0x5b9b Monta el terreno en tres franjas de VRAM (0x5C45)
+C 0x5bb9 Calcula el limite de camara superior (0x5C9E)
+C 0x5c00 Dibuja una fila de terreno repetida en todo el ancho de pantalla
+C 0x5c1d Calcula el siguiente limite de camara y prepara el dibujado de la franja central
+C 0x5ca8 Monta dos franjas de terreno adicionales (0x5C45)
+C 0x5cc1 Calcula el limite de camara correspondiente
+C 0x5cd4 Dibuja otra fila de terreno repetida
+C 0x5cf1 Calcula el limite de camara para esta franja
+C 0x5ea5 Calcula el indice (a*16) para el terreno actual
+C 0x5eb3 Si coincide con la ultima cache (0xE0A5), no repite la cadena de sprites
+C 0x61eb Guarda A y separa los siguientes bytes en D (nibble), E y C
+C 0x61f7 Calcula la posicion de columna final combinando los bytes leidos
+C 0x516a Espeja en alto los 7 bytes restantes, avanzando hacia atras en el origen
+C 0x5171 Calcula la direccion del texto en 0xEF00 segun el byte leido
+C 0x53f3 Si (0xE072) es par, no hace nada
+C 0x5404 Calcula la diferencia de posicion (0x55A8) y guarda dos limites de camara (0xE10E/0xE110)
+C 0x57ab Calcula la coordenada Y (0x98-A) y fija los parametros de sonido (0xE114/0xE11C)
+C 0x57ba Compara la distancia de fotogramas (0xE00A vs 0xE06A) para decidir el redondeo
+C 0x5bd3 Dibuja varias filas de terreno (0x5C6B)
+C 0x5be3 Calcula el siguiente limite de camara (0x5C9E)
+C 0x5daf Rellena de color varias franjas de pantalla (0x4156)
+C 0x5dc6 Dibuja tres textos en distintas posiciones (0x5DD6)
+C 0x5fc8 Calcula la distancia diagonal A^2+C^2 (0x5F3B/0x5F7C)
+C 0x5fdc Convierte la distancia en fila/columna de pantalla (0x5F4C)
+C 0xa8e8 la suma corrida: cada valor es el anterior mas el byte, y por eso hacen falta 16 bits -tabla_patrones_terreno tiene 570 entradas-
+C 0x4e6c Calcula la trayectoria con el viento actual (0x601B)
+C 0x4e81 Escala la potencia del golpe segun el angulo (0x5F3B/0x600F)
+C 0x52ff Monta el terreno del hoyo (0x456B/0x5D84) y rellena de color la franja superior
+C 0x5310 Segun los bits de (0xE000), decide el siguiente estado del turno
+C 0x5dec Descomprime el sprite fijo de 0xB349 en 0xE800
+C 0x5dfb Descomprime el sprite de tabla_planos_de_hoyo correspondiente al hoyo en 0xEA14
+C 0xbf84 Lee el puntero de reproduccion del canal y lo avanza 3 posiciones
+C 0xbf9a Lee el comando y su parametro de 2 bytes del flujo de bytecode
+C 0x4f2d Guarda el nuevo estado (0xE06E) y decide si redibuja el marcador o el texto
+C 0x4f3e Elige el bloque de datos de puntuacion segun (0xE097)
+C 0x5b61 Lee el tile del buffer de terreno y obtiene su patron (0x5E66)
+C 0x5b74 Decide si sigue la cadena de sprites de terreno (0x5EA5)
+C 0xbe39 Guarda el volumen del canal; si es silencio (0x10) no hace nada
+C 0xbe45 Calcula la direccion de la forma de onda a partir del puntero del canal
+C 0xbe74 Lee el byte actual del bytecode del canal (0xBF84)
+C 0xbe87 Si es un comando (>=0xE0), salta a la rutina de la tabla de despacho (0xBFA4) -el JP (HL) real-
+C 0x46f9 Prepara la camara y guarda la posicion de ambos jugadores como referencia (0xE02E/0xE030/0xE032)
+C 0x4717 Calcula el rango de dificultad (0xE114) segun el puntero de datos de puntuacion (0xE112)
+C 0x4ca9 Guarda el flag de fase y lee el parametro de terreno (tabla_terreno_b) para dibujarlo
+C 0x4cc3 Copia 2 bytes de tabla_terreno_a a VRAM
+C 0xbd0d Calcula la direccion de la estructura del canal (b>>3, base 0xF401)
+C 0xbd1e Copia 30 bytes desde tabla_bfc2 para inicializar el canal
+C 0x4534 Rellena los registros de sonido con silencio, avanzando de 4 en 4
+C 0x4544 Fija los limites de camara por defecto (0xE0C2-0xE0C8)
+C 0x4885 Si hay una animacion de golpe en curso (0xE06C/0xE076), no hace nada
+C 0x489a Segun el estado del turno (0xE069), decide la siguiente accion (sonido, sprite o cambio de fase)
+C 0x4b96 Dispatcher por bits de (0xE06C): cada bit activo llama a la fase de animacion del golpe correspondiente
+C 0x4bb5 Si ningun bit esta activo y (0xE077) es cero, usa el color de indicador por defecto
+C 0x5c45 Copia dos franjas de 0xA8 bytes de VRAM a RAM (terreno visible)
+C 0x5c58 La segunda franja esta desplazada 0x2000 en VRAM (el otro tercio de pantalla)
+C 0xa8ee el acumulado se guarda en su sitio, byte bajo y byte alto
+C 0x475c Dibuja el texto del marcador (0x4145) y rellena color en dos franjas
+C 0x477b Monta las posiciones iniciales de ambos jugadores (0x4797)
+C 0x52a4 Dispatcher por bits de (0xE077): cada bit activo llama a otra fase (terreno, trayectoria, viento, reinicio)
+C 0x52bf Si ningun bit esta activo, comprueba los intentos y ajusta el color del indicador
+C 0x587b Acumula velocidad y posicion en ambos ejes (0x58FF/0x58EB)
+C 0x5ecb Calcula la direccion de VRAM del marcador (dos multiplicaciones por 8)
+C 0x5ee1 Copia 8 bytes del patron a esa posicion
+C 0x4670 Reinicia todas las variables de turno y sonido al empezar partida
+C 0x468c Fija los limites de camara y puntero de puntuacion por defecto
+C 0x46ad Monta las posiciones iniciales de ambos jugadores
+C 0x4b3c Calcula la posicion de VRAM del proximo tile a partir del puntero de puntuacion (0xE112)
+C 0x4b52 Lee dos bytes de VRAM (patron actual y su vecino)
+C 0xa87c Limpia el buffer de terreno antes de elegir el sprite de fondo
+C 0xbd89 Reproductor principal del canal: gestiona la duracion de la nota actual
+C 0xbd9c Aplica vibrato/portamento si estan activos (ix+0x12/0x13)
+C 0xbdaa Decrementa el contador de repeticion; si llega a cero, va a leer el siguiente comando (0xBE74)
+C 0x5656 Acumula velocidad y posicion (0x587B) hasta que la bola aterriza
+C 0x565f Calcula la posicion final de aterrizaje y monta la lista de objetos del hoyo alli
+C 0x5673 Fija los limites de camara segun el puntero de datos de puntuacion (0xE112)
+C 0x56fb Calcula la distancia de camara restando ambos limites
+C 0x570c Segun el rango, decide si vibra la camara (0x572D) o pasa al siguiente estado (0x5742)
+C 0x5717 Actualiza los limites de camara en pasos de 8
+C 0x5699 Guarda la posicion de camara (0xE020) y copia el bloque de posicion inicial (16 bytes)
+C 0x56a7 Fija los limites por defecto y reinicia los contadores para el nuevo hoyo
+C 0x593b Monta el terreno del HUD (0x4586/0x456B) y los textos de hoyo/par
+C 0x5960 Dibuja el numero de hoyos restantes
+C 0x4063 Espera a que termine el arranque (bit 7 de 0xE005)
+C 0x406b Engancha el manejador de interrupcion definitivo y monta la pantalla de titulo (DISSCR/INIT32)
+C 0x408b Dibuja el texto inicial segun el bit 6 del byte leido de la pila
+C 0x4628 Registra sonido y lee la lista de objetos del hoyo (0x6289)
+C 0x4636 Guarda las dos primeras posiciones como referencia de camara (0xE00E/0xE014)
+C 0x4643 Ajusta el bit 6 de (0xE000) segun coincidan o no los punteros de datos de los jugadores
+C 0x55d1 Calcula el valor absoluto de la distancia (0x5F8F); si supera 0x90 no hace nada
+C 0x55dc Calcula la posicion de VRAM del sprite con el signo de la distancia (0x5FB2)
+C 0x55e9 Convierte la posicion en fila/columna de pantalla (0x5F4C)
+C 0xbd21 Copia el bloque completo de 30 bytes de una sola vez (ldir)
+C 0x453d Avanza el patron en pasos de 0x10 para el siguiente registro
+C 0x4897 Comprueba el estado del turno actual antes de decidir la accion
+C 0x4bad Si tampoco el bit del septimo intento esta activo, comprueba (0xE077)
+C 0x4767 Rellena de color otra franja del marcador (bunker/agua)
+C 0x52bd Si ningun bit de (0xE077) esta activo, no hace nada mas
+C 0x58a5 Detecta si la bola supero el limite de distancia (bit 7 de D)
+C 0xa889 El resto de valores de terreno usan el sprite de fondo por defecto (0xA926)
+C 0x56b7 Fija la posicion inicial del indicador de terreno (0xEB8F)
+C 0x5c4c Copia la primera franja de VRAM a RAM (terreno visible izquierdo)
+C 0x576d Guarda el nuevo puntero de datos de puntuacion y redibuja el terreno (0x585D)
+C 0x5773 Segun los bits de (0xE01D) y (0xE007), decide si registra el sonido de impacto
+C 0x5782 Calcula el limite de camara horizontal a partir del hoyo actual (0xE0AD)
+C 0x4958 Calcula el viento actual (0x5FB2/0x601B)
+C 0x4962 Calcula la posicion de salida sumando el desplazamiento del terreno
+C 0x4984 Monta la lista de objetos del hoyo (0x4A11) y decide el siguiente estado segun (0xE000)
+C 0x4f8a Recorre la lista de objetos calculando su posicion relativa a la camara (dos restas)
+C 0x4f99 Resta la posicion de camara X e Y para obtener la coordenada relativa
+C 0x4faa Si esta en el estado especial y el tipo es 8, lo cambia a 7
+C 0x54d1 Calcula la distancia hasta el hoyo (0x55A8) y guarda el nuevo limite de camara
+C 0x54e2 Calcula el nuevo rango de dificultad a partir de la distancia
+C 0x54f6 Si la bola cayo muy cerca (0-1), calcula el rebote con el viento actual (0x5FB2/0x601B)
+C 0x59e8 Coloca los ocho iconos de viento en pantalla (0x4156)
+C 0x59fc Dibuja el marcador de golpe con su color
+C 0x5a0c Dibuja las etiquetas del HUD segun el hoyo actual (par o no)
+C 0x6217 Multiplica por 8 tras saturar a multiplo de 8 (columna del elemento)
+C 0x6220 Extrae el nibble bajo de C como coordenada Y del elemento
+C 0x6229 Extrae el nibble alto de C como coordenada X
+C 0x4e2c Multiplica el parametro de altura por (0xE092) para el segundo termino
+C 0x4e46 Combina ambos terminos calculados
+C 0x5891 Repite el calculo de velocidad/posicion para el segundo eje
+C 0x5c6f Copia la fila de terreno (0xE0B0/0xE0B2) a las dos franjas de VRAM
+C 0x5c8c Avanza los punteros de origen para la siguiente fila
+C 0x496b Ajusta el signo de la posicion Y segun (0xE0A0)
+C 0x4fa8 Guarda el tipo de objeto ya ajustado
+C 0x54ef Comprueba la distancia horizontal restante hasta el hoyo
+C 0x5a1f Elige el texto segun el bit 6 de (0xE0A0) (par/no par)
+
+# ======================================================================
+# LOS CINCO BYTES HUERFANOS DE 0x4B04
+# ======================================================================
+# `3E 80 32 77 E0`, o sea `ld a,080h / ld (0e077h),a`: dos instrucciones
+# perfectamente validas, encajadas entre el `jp` que cierra 0x4AF8 y la
+# rutina de 0x4B09, y a las que NO LLEGA NADIE. Rastreadas las 32.768
+# posiciones del cartucho, ningun CALL, JP ni JR apunta ahi, y el trazado
+# tampoco cae dentro.
+#
+# Lo que hacen esta vivo en otro sitio: marca_la_fase (0x5520) es
+# `call 0x4A11 / ld a,080h / ld (0e077h),a`, las mismas dos instrucciones
+# con una llamada delante. Esto de aqui es una copia suelta que se quedo
+# entre dos rutinas y no la borro nadie.
+D 0x4b04 0x4b09 codigo_huerfano  Codigo valido pero inalcanzable: `ld a,080h / ld (0e077h),a`, la misma pareja que remata marca_la_fase (0x5520), sin un solo salto que llegue hasta aqui
+F 0x4b04 5
+
+# ==== NOMBRES DE RUTINA (src/casioworldopen.nombres) ====
+L 0x4F23 invierte_el_bit_bajo  Complementa el bit 0 de (0xE06D): el interruptor que alterna entre los dos estados
+ fichero se
+# pega al final del .notes; su unico motivo de existir aparte es que el paso
+# de bautizado se lea de un tiron.
+#
+# El criterio: el nombre dice lo que la rutina HACE, no lo que uno supone que
+# significa. Donde el proposito no esta cerrado, el nombre describe el
+# mecanismo -que registro entra, que variable sale- y la explicacion lo dice.
+
+# ======================================================================
+# ARRANQUE, PANTALLA DE TITULO Y BUCLE DE PARTIDA
+# ======================================================================
+L 0x4045 arranca_la_partida  Monta la pantalla de juego, limpia los indicadores de sonido y entrada y engancha el manejador temporal
+L 0x4063 espera_el_arranque  No sigue hasta que el bit 7 de (0xE005) dice que la inicializacion termino
+L 0x40A8 prepara_el_hud  Deja listos los datos del jugador 1 para el marcador
+L 0x40CB enciende_la_pantalla  Muestra lo ya montado y registra los bloques de sonido
+L 0x40D1 espera_el_canal_libre  Da vueltas hasta que (0xF403) suelta el canal de sonido
+L 0x40ED espera_el_canal_otra_vez  La misma espera, en el otro punto del arranque
+L 0x410F limpia_los_nombres  Rellena de espacios las 768 celdas de la tabla de nombres
+L 0x411A prepara_el_texto_del_hud  Guarda el puntero de origen y elige longitud 0x24 o 0x48 segun el bit 6 de (0xE005)
+L 0x4127 suma_la_longitud  Junta la base con el desplazamiento para saber cuanto copiar
+L 0x4132 espeja_en_alto  Pone el bit 7 a los siete bytes que quedan y deja el puntero final
+L 0x4145 copia_a_vram  Copia B bytes de HL a la VRAM: el ayudante que usa casi toda la pantalla de titulo y el marcador
+L 0x4156 rellena_vram  Rellena la VRAM con un valor, por la BIOS
+L 0x415B interrupcion_de_arranque  El manejador TEMPORAL: llama al definitivo y, la primera vez, remata la inicializacion
+L 0x4191 marca_el_relleno  Deja 0xC2 en (0xE116)
+L 0x4196 baja_la_bandera_de_arranque  Pone (0xE002) a cero para no repetir
+L 0x419B monta_la_pantalla_de_titulo  Apaga el video, entra en SCREEN 1 y coloca el logotipo, los textos y el color
+L 0x4265 espera_la_eleccion  Con el canal de sonido libre, prepara los valores del disparo y lee la eleccion de jugadores
+L 0x4283 marca_un_jugador  Deja el codigo de un jugador
+L 0x4285 repinta_la_eleccion  Redibuja la marca y vuelve a esperar
+L 0x428A marca_dos_jugadores  Baja el bit 4 de (0xE0BA) y repinta
+L 0x4296 pinta_la_marca_de_jugadores  Elige tres bytes de tabla_atributo_titulo segun los indicadores y el acarreo
+L 0x42A0 elige_la_ventana  El bit 4 de (0xE0BA) decide cual de las dos filas se marca
+L 0x42AA escribe_la_marca  Deja el bloque de 1x3 en la fila que toque
+L 0x42B5 pasa_al_juego  Engancha el manejador de 0x44D3 y monta la pantalla de juego
+L 0x42C5 cierra_el_hoyo  Espera, refresca el marcador y avanza de hoyo mientras no se pase de 18
+L 0x42D9 espera_o_reinicia  Con el disparo pulsado reinicia el cartucho; si no, espera a que (0xE0BA) llegue a 0x60
+L 0x42E9 registra_los_sonidos  Da de alta los dos bloques fijos de sonido, canales 0 y 1
+L 0x44D3 interrupcion_de_juego  El manejador definitivo mas la comprobacion del bit 4 de (0xE0A8)
+L 0x44E5 copia_un_bloque  C filas de B bytes, avanzando una fila de VRAM en cada vuelta
+L 0x44F3 monta_la_pantalla_de_juego  Pasa por SCREEN 1 para quedarse con su juego de caracteres y lo lleva a SCREEN 2 como patrones del campo
+L 0x4527 rellena_una_fila  Deja la fila de patron a 0xC2
+L 0x4534 calla_los_canales  Silencia los registros de sonido avanzando de cuatro en cuatro
+L 0x4F2D guarda_el_estado_y_repinta  Deja el nuevo estado en (0xE06E) y decide si redibuja el marcador o el texto
+L 0x4F5F copia_al_intermedio  Cincuenta y cuatro bytes fijos al buffer de trabajo de 0xEE80
+L 0x4F77 guarda_el_contador  Deja B en 0xEE87
+L 0x4F7B recupera_la_segunda  Trae la otra direccion y calcula su tabla
+L 0x4F8A posicion_relativa_a_la_camara  Recorre la lista de objetos restando la posicion de camara
+L 0x4FB7 guarda_y_avanza  Deja el resultado y calcula donde va el siguiente
+L 0x4FC7 fin_de_la_lista  Recupera el puntero y sale
+# ======================================================================
+# EL REPRODUCTOR DE SONIDO: DIECISEIS CANALES CON SU PROPIO BYTECODE
+# ======================================================================
+L 0xBD03 registra_un_bloque  Guarda el puntero del bloque en la estructura del canal y lo enciende
+L 0xBD0D estructura_del_canal  De su numero saca la direccion: el indice partido por ocho sobre la base 0xF401
+L 0xBD2A para_el_canal  Apaga el canal que le digan
+L 0xBD56 recorre_dos  Dos canales seguidos, con paso de 0x20
+L 0xBD60 calla_este_canal  Deja el canal en silencio
+L 0xBD67 escribe_el_registro  Manda el valor al registro del PSG que toque
+L 0xBD6E cierra_el_canal  Lo apaga del todo
+L 0xBD75 arranca_el_reproductor  Prepara los canales desde la base 0xF401
+L 0xBD7B recorre_los_canales  Los dieciseis, uno por bit de (0xF400), con paso de 0x20
+L 0xBD89 canal_un_paso  El paso del canal en este cuadro: lleva la duracion de la nota
+L 0xBDBE lee_el_periodo  Saca de la tabla el periodo de la nota
+L 0xBDDC suma_el_indice  Entra en la tabla con el desplazamiento calculado
+L 0xBDDE devuelve_el_periodo  Deja la pareja lista
+L 0xBDE2 dos_registros_seguidos  Escribe el registro y el siguiente: el tono va en pareja
+L 0xBDEA lee_el_ruido  Trae el registro 6, que es el generador de ruido
+L 0xBDF6 mantiene_el_ruido  Lo deja como estaba
+L 0xBE00 sube_el_ruido  Le suma su incremento sin pasar de 0x20
+L 0xBE09 escribe_el_ruido  Y lo devuelve al registro 6
+L 0xBE0F mira_si_esta_callado  Con el volumen a 0x10 el canal esta mudo y no hay nada que hacer
+L 0xBE25 baja_un_bit  Desplazamiento con signo, guardando el resto
+L 0xBE31 recoge_el_bit  Toma un bit mas del flujo del canal
+L 0xBE39 guarda_el_volumen  Deja el volumen; si es silencio, para aqui
+L 0xBE58 ocho_sub_elementos  Prepara la lectura de los ocho campos del canal
+L 0xBE62 monta_el_nibble  Va montando el nibble bit a bit
+L 0xBE68 cierra_el_nibble  Al agotar la cuenta, lo reordena y vuelve al reproductor
+L 0xBE74 lee_el_bytecode  Trae el byte actual del guion del canal
+L 0xBE90 intercambia_de  Cambia D y E con el juego de registros alterno
+L 0xBEA4 compara_y_sigue  Si coinciden, vuelve al reproductor principal
+L 0xBEB2 recorta_a_doce  Nada por encima de doce
+L 0xBEBB entra_en_la_tabla_de_ordenes  Los doce punteros de 0xBFD5, indexados por el doble de A
+L 0xBECA baja_la_pareja  Desplaza DE un bit a la derecha
+L 0xBED1 dobla_el_indice  Dobla B para entrar en la tabla
+L 0xBED7 mira_el_parametro  Con el parametro a 0x10, el canal esta mudo
+L 0xBEE2 prepara_el_registro  Deja el valor listo para el PSG
+L 0xBEF1 siguiente_orden  Lee la orden siguiente del guion
+L 0xBF03 sube_el_contador_del_canal  Incrementa el contador de repeticiones
+L 0xBF0B lee_el_puntero_guardado  Trae el puntero de vuelta del canal
+L 0xBF11 guarda_el_puntero  Y lo deja como puntero activo
+L 0xBF17 sin_hacer_nada  La orden que no hace nada
+L 0xBF18 rebobina_el_canal  Devuelve el puntero de reproduccion a su valor de partida: el bucle de la pista
+L 0xBF29 nibble_del_parametro  Se queda con los cuatro bits bajos
+L 0xBF30 calla_y_avanza  Pone el volumen a silencio y pasa a la orden siguiente
+L 0xBF47 guarda_el_parametro  Deja E como parametro del canal
+L 0xBF62 direccion_por_los_bits  Desplaza segun los bits de B para dar con la tabla
+L 0xBF6C desplaza_hasta  Cada uno de esos desplazamientos
+L 0xBF70 lee_el_mezclador  Trae el registro 7, el del mezclador
+L 0xBF80 guarda_el_ultimo  Deja E en el ultimo campo del canal
+L 0xBF84 avanza_el_guion  Lee el puntero del canal y lo adelanta tres posiciones
+sonido avanzando de cuatro en cuatro
+L 0x4562 muestra_la_pantalla  Enciende el video y deja el registro 1 del VDP en 0xE2
+L 0x456B limpia_el_terreno  Diecinueve pasadas sobre el buffer de terreno de 0xE800
+L 0x4570 limpia_una_franja  Treinta y dos celdas por pasada
+L 0x4573 limpia_una_celda  Escribe el indice bajo en cada casilla
+L 0x4586 lee_la_ficha_del_hoyo  Toma las cinco de datos_por_hoyo: el tipo de terreno a (0xE0A0) y (0xE09F), y cuatro parametros mas
+
+# ======================================================================
+# EL DESPACHO POR BITS DE (0xE001) Y EL MARCADOR
+# ======================================================================
+L 0x4602 despacha_por_bits  Va rotando (0xE001) y atiende cada bit puesto: es la lista de tareas del cuadro
+L 0x4628 empieza_el_hoyo  Registra el sonido y trae la lista de objetos del hoyo que toca
+L 0x4660 mezcla_posicion_y_cuadro  Junta (0xE0BA) con el numero de cuadro, y marca el bit alto si el terreno lo pide
+L 0x4670 reinicia_el_turno  Deja a cero todas las variables de turno y de sonido
+L 0x46B3 columna_desde_la_fila  0x7E menos la fila; el signo del terreno elige la paleta
+L 0x46C4 descarta_si_se_sale  Por debajo de la fila 0xB0 no dibuja nada
+L 0x46CC cambia_de_turno  Enciende o apaga el bit 6 de (0xE000) segun toque
+L 0x46E3 junta_las_dos_posiciones  Prepara las posiciones de los dos jugadores para medir quien esta mas lejos
+L 0x46F9 coloca_la_camara  Prepara la vista y guarda la posicion de los dos jugadores como referencia
+L 0x472E reinicia_el_hoyo  Hoyo, terreno y angulo de partida (0x80) a sus valores iniciales
+L 0x4740 quien_esta_mas_lejos  Compara los dos valores absolutos y decide de quien es el turno
+L 0x4754 refresca_el_marcador  Mira (0xE09E) y decide si hay que repintar
+L 0x475C pinta_el_texto_del_marcador  Escribe el rotulo y rellena el color en dos franjas
+L 0x4797 prepara_las_cifras  Guarda el origen y elige el patron 0xAB o 0xAD segun el signo
+L 0x47A5 prepara_el_golpe_en_el_hud  Deja los cinco parametros de dibujo del marcador de golpe
+L 0x47BB cuenta_las_centenas  Resta cien mientras quepa: las centenas de la cifra
+L 0x47C5 cierra_la_cifra  Guarda el resultado y vuelve al origen
+L 0x47D3 arranca_las_decenas  Entra con el codigo del cero ya puesto en L
+L 0x47D5 cuenta_las_decenas  Resta diez mientras quepa, contando en L
+L 0x47DC deja_las_unidades  Lo que sobra son las unidades, ya en codigo de caracter
+L 0x47E0 mira_si_repinta  Segun el bit leido, decide si el marcador de golpe se redibuja
+L 0x47EE prepara_el_repintado  Limpia (0xE0C0) y monta el bucle de cincuenta pasos sobre (0xE12A)
+L 0x47FC rellena_de_espacios  Deja la fila en blanco; el color depende de que jugador sea
+L 0x4815 lee_la_cuenta  Toma la longitud del texto siguiente
+L 0x481A salta_el_texto  Se salta el texto que no toca
+L 0x481F prepara_la_copia  Deja la longitud en BC y el destino en 0xE12B
+L 0x4827 elige_la_fila_del_marcador  El bit 6 de (0xE000) dice en cual de las dos filas va
+L 0x4834 pinta_los_golpes  Escribe los siete bytes del contador y los seis del texto de al lado
+L 0x484B pinta_la_segunda_fila  La misma pareja, en la fila del otro jugador
+L 0x4885 mira_si_hay_animacion  Con un golpe en curso no toca nada
+L 0x48B4 registra_el_sonido_del_terreno  Si el terreno no es el especial, da de alta el bloque del canal 2
+L 0x48C6 pide_el_repintado  Deja (0xE001) a 0x40, que es lo que pide redibujar
+L 0x48CF marca_el_marcador_sucio  Deja (0xE09E) a 0x81
+L 0x48D4 pasa_al_otro_jugador  Copia posicion y datos del otro a las variables del turno activo
+L 0x48EF encadena_el_refresco  Registra el sonido y encadena terreno, marcador y viento
+L 0x4905 descuenta_el_contador  Baja el contador y reparte segun con que valor se queda
+L 0x4918 mira_los_dos_bits_bajos  Los dos bits bajos de (0xE0BA) deciden el camino
+L 0x4924 sonido_del_canal_dos  Da de alta el bloque de 0xBBEC en el canal 2
+L 0x492C sortea_con_el_cuadro  Mezcla (0xE0B9) con el numero de cuadro: el azar del cartucho
+L 0x4950 escala_por_cuatro  Dobla dos veces el valor antes de usarlo como indice
+
+# ======================================================================
+# EL VIENTO, EL TURNO Y EL AVANCE DE HOYO
+# ======================================================================
+L 0x4958 calcula_el_viento  Saca la fuerza y el rumbo del viento del cuadro
+L 0x499B marca_el_viento_sucio  Levanta el bit 5 y pide repintado
+L 0x49A0 enciende_los_avisos  Levanta las dos senales de sonido y fuerza el color del indicador
+L 0x49B9 registra_el_tercer_sonido  Da de alta el tercer bloque y ajusta el contador segun el signo de (0xE075)
+L 0x49D0 arranca_la_busqueda_de_objeto  Prepara los punteros para recorrer los objetos del hoyo
+L 0x49D7 busca_el_objeto_activo  Recorre los objetos hasta dar con uno marcado, o hasta pasar del limite 0x80
+L 0x49F0 guarda_la_salida  Deja la posicion de partida del jugador y encadena sonido y marcador
+L 0x4A06 sonido_de_arranque  Da de alta el bloque de 0xBC09
+L 0x4A11 elige_la_estructura_del_turno  El bit 6 de (0xE000) dice de que jugador son las variables
+L 0x4A1A estructura_del_jugador_dos  Apunta IY a la tabla del segundo
+L 0x4A20 estructura_del_jugador_uno  Apunta IY a la del primero
+L 0x4A24 estructura_comun  Y IX a la tabla comun
+L 0x4A2A elige_las_dos_tablas  Reparte entre 0x4A7E y 0x4A8A segun el turno
+L 0x4A3B tabla_comun_por_defecto  El caso en el que IY tambien es la comun
+L 0x4A3F copia_los_parametros  Pasa los dos bloques comunes a la estructura de los dos jugadores
+L 0x4A54 copia_tres_bloques  Tres parejas de bytes por vuelta
+L 0x4A56 copia_un_par  Copia una pareja de la estructura IX a la IY
+L 0x4A96 mira_si_hay_animacion_de_camara  Con (0xE077) ocupado no toca nada
+L 0x4A9B elige_el_contador_del_jugador  Con el bit 6 bajo, el puntero es el de la segunda mitad
+L 0x4AA7 diferencia_con_el_terreno  Diferencia con signo entre el terreno y el contador, saturada de 0 a 99
+L 0x4ABA guarda_y_comprueba  Guarda el valor y mira si B mas 0x85 desborda
+L 0x4AD2 recorta_el_desborde  Por encima de 0x88 se queda a cero
+L 0x4AD7 guarda_el_sonido_y_repinta  Deja el parametro de sonido y redibuja el marcador
+L 0x4AF8 marca_dos_senales  Levanta los bits 2 y 4 y mira el 5
+L 0x4B09 avanza_de_hoyo  Sube (0xE0B4): en el 19 se acaba la ronda, y en el 10 se cambia de recorrido
+L 0x4B19 pide_la_tarea  Deja la tarea pedida en (0xE001)
+L 0x4B1C prepara_la_columna  Nueve celdas desde 0xE0EA con el valor 0xC2
+L 0x4B23 rellena_la_columna  Escribe de dos en dos: una columna entera de la VRAM
+L 0x4B2B cierra_la_ronda  El codigo 0xC0 marca el final de las dieciocho
+L 0x4B2D guarda_el_cierre  Deja el codigo y pone a cero la posicion
+L 0x4B38 cambia_de_recorrido  El codigo 0x80 marca el paso de la ida a la vuelta
+L 0x4B3C posicion_del_tile  Saca la direccion de VRAM del siguiente tile desde el puntero de puntuacion
+L 0x4B60 baja_el_contador  Descuenta hasta cero
+L 0x4B68 normaliza_el_signo  Rota D a la izquierda si el par D,E desborda
+L 0x4B71 comprueba_el_nibble  Sale si el nibble bajo vale 0x0B
+L 0x4B79 prepara_los_indicadores  Deja 0xD0 en (0xE11E) y limpia la tira de 0xE0C2
+L 0x4B8A avanza_los_contadores  El manejador de interrupcion: sube los siete contadores de 0xE0BA
+L 0x4B8F sube_un_contador  Cada uno de esos siete incrementos
+L 0x4B96 despacha_la_animacion  Rota (0xE06C) y llama a la fase de animacion del golpe que toque
+L 0x4BC0 mira_los_intentos  Por encima de 0x60 intentos, recoloca la camara
+L 0x4BD7 recalcula_el_viento  Vuelve a sacar fuerza y rumbo para el nuevo cuadro
+L 0x4BF8 elige_el_sprite_fijo  Reparte entre tres sprites segun (0xE114)
+
+# ======================================================================
+# LAS FASES DEL GOLPE: ANGULO, POTENCIA Y TRAYECTORIA
+# ======================================================================
+L 0x4C10 dibuja_el_sprite_fijo  Guarda el sonido, pinta el sprite elegido y fija los parametros de animacion
+L 0x4C2E reinicia_si_toca  Con el bit 4 de (0xE0A7) puesto, angulo y potencia vuelven a cero y el terreno se repinta
+L 0x4C44 mira_si_hay_angulo  Sin angulo (0xE0A8) o con la camara ocupada, no hace nada
+L 0x4C62 acerca_el_terreno  Sube o baja el tipo de terreno hacia B, saturando en 0xFF
+L 0x4C6D terreno_sube  Un paso hacia arriba
+L 0x4C70 terreno_baja  Un paso hacia abajo, sin pasarse de B
+L 0x4C75 guarda_el_terreno  Lo deja puesto y mira si es el especial
+L 0x4C80 repinta_el_terreno  Con la camara ocupada, redibuja y fuerza el tipo especial
+L 0x4C91 dibuja_el_terreno  Manda a dibujar y mira el signo del parametro
+L 0x4C98 dibuja_y_remata  Dibuja y encadena el remate
+L 0x4C9E mira_si_es_el_especial  Marca en A si el terreno actual es el tipo 0x0C
+L 0x4CA9 dibuja_por_tabla  Guarda la fase y saca de tabla_terreno_b el parametro con el que dibujar
+L 0x4CD6 elige_el_lado  El acarreo decide por que lado entra
+L 0x4CDD mira_los_bits_de_estado  Los bits 2 y 3 de (0xE0A7) reparten el camino
+L 0x4CE8 mira_el_bit_dos  El otro reparto
+L 0x4CEC desplaza_la_camara  Calcula el desplazamiento y elige parametro segun el terreno
+L 0x4CFD recorta_contra_el_limite  Si la posicion normalizada no llega al limite, la guarda
+L 0x4D06 guarda_el_viento_base  Deja el viento actual como base y convierte la posicion de camara
+L 0x4D1E calcula_la_fila  Saca la fila de VRAM; sin el bit 4 de (0xE0BA) usa el patron de relleno
+L 0x4D56 invierte_el_angulo  Con el bit 4 de (0xE0A8) puesto, el angulo de tiro cambia de signo
+L 0x4D65 fija_el_angulo  Guarda el angulo, pone los intentos a cero y salta al paso 0x10
+L 0x4D75 avanza_el_angulo  Sube el angulo de cinco en cinco, dandole la vuelta al llegar al tope
+L 0x4D80 posicion_del_angulo  Saca de la tabla trigonometrica la posicion que le toca
+L 0x4D8E prepara_la_trigonometrica  Ocho vueltas sobre el byte de la tabla
+L 0x4D93 rota_la_trigonometrica  Rota a la derecha tantas veces como diga A
+L 0x4D9B cierra_la_trigonometrica  Remata el bucle y devuelve el valor
+L 0x4DA9 rellena_ocho_filas  Ocho filas de VRAM con el valor que apunte DE
+L 0x4DBB mira_el_angulo_alto  Con terreno normal, angulo alto y ocho intentos, pide redibujar
+L 0x4DD4 pasa_al_paso_ocho  Deja el paso de animacion en 8
+L 0x4DDA espera_ocho_intentos  Sin llegar a ocho intentos no sigue
+L 0x4DFD sube_el_angulo  Sin el bit 4 de (0xE0A8), el angulo sube cinco
+L 0x4E0E complemento_a_cien  Guarda cien menos el resultado en (0xE0DF)
+L 0x4E1B calcula_la_trayectoria  Lee tabla_terreno_c del terreno y multiplica sus parametros por el angulo
+L 0x4E6C aplica_el_viento  Corrige la trayectoria con el viento del cuadro
+L 0x4E94 elige_el_signo  Reparte segun el bit alto
+L 0x4E9C invierte_y_escala  Cambia de signo y vuelve a multiplicar
+L 0x4EB6 guarda_la_caida  Deja la nueva posicion, reinicia los intentos y pasa al paso 4
+L 0x4EF1 reinicia_los_intentos  A los ocho intentos, los pone a cero y pide redibujar
+L 0x4F0A pasa_al_paso_dos  Deja el paso de animacion en 2
+L 0x4F10 mira_el_contador_seis  A los ocho intentos, compara (0xE06E) contra seis
+
+# ======================================================================
+# LA VISTA, LA CAMARA Y EL MONTAJE DEL HOYO
+# ======================================================================
+L 0x5155 copia_y_espeja  Copia cuarenta bytes y detras los cincuenta y seis siguientes leidos hacia atras: la version espejada
+L 0x516A espeja_el_resto  Los siete que quedan, con el bit alto puesto y el origen retrocediendo
+L 0x51AC mira_el_disparo  Los dos bits bajos de (0xE076) deciden si el golpe se reprocesa
+L 0x51B7 compara_los_intentos  Enfrenta (0xE0BE) con (0xE0A6)
+L 0x51C0 limpia_el_disparo  Deja (0xE076) a cero
+L 0x51C5 acumula_la_velocidad  Suma la velocidad en las cuatro posiciones de los dos jugadores
+L 0x51F4 arranca_la_trayectoria  Registra el sonido y calcula el primer tramo del vuelo
+L 0x5227 acumula_el_avance  Aplica el incremento tantas veces como diga la potencia del golpe
+L 0x5242 fija_el_limite_de_camara  Deja el puntero de puntuacion como nuevo tope
+L 0x525F coordenada_de_camara_y  Saca la Y de la camara a partir de (0xE0A6)
+L 0x5282 coordenada_de_pantalla  Y la posicion de pantalla que le corresponde
+L 0x5293 descomprime_a_la_ram  Descomprime en 0xE800 el bloque que traiga HL
+L 0x52A4 despacha_las_fases  Rota (0xE077) y llama a la fase que toque: terreno, trayectoria, viento o reinicio
+L 0x52CD reinicia_los_intentos_de_fase  A los ocho, los pone a cero y marca la fase
+L 0x52E1 espera_los_ocho  Por debajo de ocho intentos no hace nada
+L 0x52EE valores_por_defecto  Entra con la pareja 0x01,0x0F
+L 0x52F1 guarda_la_pareja  Deja los dos bytes en 0xE11D y 0xE11E
+L 0x52FA valores_a_cero  La misma entrada con la pareja a cero
+L 0x52FF monta_el_terreno  Limpia el buffer, dibuja el terreno del hoyo y rellena el color de la franja de arriba
+L 0x5325 junta_las_posiciones  La otra variante de la comparacion de distancias
+L 0x533B monta_el_hoyo  Escribe numero de hoyo y par, sortea el viento con el registro R y coloca la bola en su salida
+L 0x53DF cuatro_rotaciones  Cuatro pasadas de la rotacion de tres bytes
+L 0x53E1 rota_tres_bytes  Cada una de esas pasadas
+L 0x53EA normaliza_el_signo_del_par  Deja el byte de al lado a cero o a uno segun el bit 7
+L 0x53F0 guarda_el_signo  Escribe ese cero o uno
+
+# ======================================================================
+# LA BOLA EN VUELO Y EL SEGUIMIENTO DE LA CAMARA
+# ======================================================================
+L 0x53F3 mira_el_cuadro_par  En los cuadros impares no toca nada
+L 0x5416 recorta_a_cincuenta  Por encima de 0x50 se queda en el tope
+L 0x541E mira_el_signo_del_angulo  El bit 4 de (0xE0A8) reparte el camino
+L 0x542B limites_por_defecto  Fija los limites de pantalla y ajusta el color del borde si toca
+L 0x5440 sonido_segun_el_angulo  Registra el bloque que corresponde al signo del angulo
+L 0x5454 camara_con_viento  Recalcula la posicion de camara con el viento del cuadro
+L 0x5480 rota_el_vector  Tres bytes rotados a la izquierda: multiplicar por dos en 24 bits
+L 0x5483 rota_un_byte  Cada uno de esos tres desplazamientos
+L 0x5489 dos_vectores  Prepara los dos vectores de 0xE078
+L 0x548E seis_pasos  Seis vueltas por vector
+L 0x5491 suma_el_vector  Suma con acarreo el vector de tres bytes: posicion mas velocidad de la bola en vuelo
+L 0x54D1 distancia_al_hoyo  Mide lo que falta hasta el hoyo y actualiza el limite de camara
+L 0x5520 marca_la_fase  Deja 0x80 en la fase que toque
+L 0x5527 mira_el_borde  Si algun jugador se pasa del borde 0x4C, no hace nada
+L 0x5548 guarda_la_fase  Escribe el valor en (0xE077)
+L 0x554B elige_el_contador  Puntero a (0xE09A) o (0xE09C) segun el bit 6 de (0xE000)
+L 0x5557 sube_el_contador  Y lo incrementa
+L 0x5559 invierte_si_negativo  Con el signo puesto, cambia el valor antes de escalarlo
+L 0x556C suma_el_offset  Suma A al puntero, en 16 bits
+L 0x5574 suma_y_devuelve  Remate de esa suma
+L 0x5578 posicion_de_camara  Coordenada Y de la camara, del jugador que toque segun el bit 6 de (0xE000)
+L 0x5597 guarda_la_horizontal  Deja la coordenada horizontal en (0xE116)
+L 0x559E a_fila_y_columna  Convierte una coordenada de pantalla en fila y columna de caracter
+L 0x55A8 distancia_a_la_salida  Posicion relativa al tee, con el signo invertido si hace falta
+L 0x55BC distancia_a_la_llegada  Lo mismo respecto al green
+L 0x55D1 modulo_de_la_distancia  El valor absoluto de las dos; por encima de 0x90 no hace nada
+L 0x55FF escala_la_distancia  Por debajo de 0x40 la multiplica por ocho, guardando el signo
+L 0x5612 centra_en_pantalla  Suma 0x50, que es el centro
+L 0x5618 distancia_cero  El caso en el que no hay nada que escalar
+L 0x561C elige_el_indicador  Los bits de (0xE007) eligen el patron del indicador de (0xE11A)
+L 0x562C prepara_el_vuelo  Registra sonido, limpia distancias e indicadores y copia los dieciseis bytes de posicion inicial
+L 0x5656 vuela_la_bola  Acumula velocidad y posicion hasta que la bola toca el suelo
+L 0x568C posicion_tras_el_bote  Recalcula la coordenada tras el aterrizaje
+L 0x5699 guarda_la_camara  Deja la posicion de camara y vuelve a copiar el bloque de posicion
+L 0x56E2 cuenta_los_pasos  A los diecisiete pasos sube (0xE034) y mira su bit bajo
+L 0x56F1 prepara_el_seguimiento  Deja IX en el bloque de seguimiento
+L 0x56FB distancia_entre_limites  La distancia de camara es la resta de sus dos topes
+L 0x572D acerca_la_camara  Por encima de 0x39, y si queda margen, la camara se acerca un paso
+L 0x5742 velocidad_de_camara  Sale del signo de (0xE01D) con un factor de un cuarto del cuadro
+L 0x5755 guarda_el_indicador  Deja el indicador de rumbo y mide la diferencia si el hoyo es corto
+L 0x576B puntero_por_defecto  El valor 0x30 cuando no hay otro
+L 0x576D guarda_el_puntero_y_repinta  Nuevo puntero de puntuacion y terreno redibujado
+
+# ======================================================================
+# EL DIBUJADO DEL TERRENO Y EL MARCADOR
+# ======================================================================
+L 0x57AB coordenada_desde_arriba  0x98 menos el valor: la Y contada desde arriba, y de paso los parametros de sonido
+L 0x57CA dos_coordenadas_de_camara  Calcula las dos y les da la vuelta si hace falta
+L 0x57E1 fuerza_el_refresco  Por encima de 0xA4 en (0xE113), obliga a repintar
+L 0x57FC nueve_columnas  Prepara las nueve columnas de 0xE0EA
+L 0x5801 mira_el_relleno  Salta las columnas que ya llevan el patron de relleno
+L 0x5809 salta_cuatro  Avanza el puntero cuatro posiciones
+L 0x5810 acumula_a_los_dos  Suma la posicion de los dos jugadores, repinta y sube el contador de cuadros
+L 0x5831 camara_del_activo  Calcula la posicion de camara del jugador que juega
+L 0x5853 guarda_la_camara_horizontal  Deja el resultado en (0xE116)
+L 0x585D decide_si_repinta  Cruza limite de camara, cercania del hoyo y terreno antes de decidir
+L 0x5878 pon_el_relleno  Deja el patron 0xC2 en la casilla
+L 0x587B acumula_los_dos_ejes  Suma velocidad y posicion en los dos ejes
+L 0x58BB descuenta_la_distancia  Resta ocho al contador; al llegar a cero lo reinicia y avisa con acarreo
+L 0x58D3 mira_el_rango  Enciende o apaga el bit 0 de (0xE008) segun caiga (0xE01B) en su rango
+L 0x58E7 limpia_el_acarreo  Sale sin acarreo
+L 0x58E8 recupera_registros  Devuelve HL y DE
+L 0x58EB suma_dos_bytes  Suma la pareja de la tabla y guarda el resultado
+L 0x58FC suma_con_acarreo  El remate de 16 bits
+L 0x58FF suma_a_la_estructura  Suma un vector de dos bytes a la estructura que apunta IX
+L 0x5915 escala_los_dos_bytes  Multiplica H y L por A y junta el resultado
+L 0x5926 lista_de_objetos_aparte  La misma busqueda de tabla_objetos_hoyo, por su cuenta
+L 0x593B monta_el_marcador  Escribe todo el HUD: hoyo, par, POWER, CLUB, WIND y los iconos
+L 0x5982 escribe_el_hoyo  El texto del hoyo -OUT o IN- y cuantos quedan
+L 0x59E1 lee_un_icono_de_viento  Toma tipo y valor de la lista de iconos
+L 0x59E8 coloca_los_iconos  Pone los ocho rumbos del viento en su sitio
+L 0x5A2C pinta_el_golpe  Escribe el marcador de golpe y su separador
+L 0x5A46 recorre_veintiuna_filas  Avanza a la vez el puntero de datos y el destino de VRAM
+L 0x5AFD anima_al_golfista  Monta el fondo y descomprime los dos cuadros del golfista que tocan
+L 0x5B2D lee_el_nombre_de_la_celda  Trae de la VRAM el patron que hay en esa posicion
+L 0x5B41 pinta_veintiuna_columnas  La fila de la vista en perspectiva; con el bit 7 de (0xE0A0) va espejada
+L 0x5B4D veintiuna  El ancho de la vista
+L 0x5B4F pinta_una_celda_de_la_vista  Dibuja la celda y avanza o retrocede el puntero segun el espejo
+L 0x5B5A avanza_el_puntero  El caso normal
+L 0x5B5B siguiente_columna  Avanza el destino y sigue
+L 0x5B61 tile_por_indice  El corazon del dibujado: el byte del mapa indexa la lista acumulada de 0xE800 -dos `add hl,bc`, o sea 16 bits- y saca el codigo de tile
+L 0x5B7B nueve_columnas_de_altura  Prepara el recorrido de las nueve columnas de altura
+L 0x5B81 mira_si_cabe  Si la fila se sale de pantalla, marca acarreo y usa el relleno
+L 0x5B8B guarda_la_altura  Deja el valor en la columna y reinicia la animacion si el hoyo es corto
+L 0x5B9B monta_las_tres_franjas  Dibuja el terreno en las tres franjas de la pantalla
+L 0x5BCA franja_superior  Cada paso de la franja de arriba
+
+# ======================================================================
+# LAS FRANJAS DE TERRENO Y EL PLANO DEL HOYO
+# ======================================================================
+L 0x5BD3 pinta_varias_filas  Varias filas de terreno seguidas
+L 0x5C00 fila_repetida  Una fila repetida en todo el ancho
+L 0x5C28 fila_de_veinticuatro  Una fila de veinticuatro columnas, repetida
+L 0x5C45 copia_la_franja  Trae dos franjas de 0xA8 bytes de la VRAM a la RAM: el terreno que se ve
+L 0x5C6B pinta_la_franja  Escribe una franja entera con el patron que le toque
+L 0x5C9E lee_de_la_vram  Trae el byte que hay en esa posicion
+L 0x5CA8 monta_dos_franjas_mas  Las dos franjas de terreno que faltan
+L 0x5CD4 fila_hacia_abajo  Otra fila repetida, recorriendo hacia abajo
+L 0x5CFC fila_de_veinticuatro_abajo  La variante de veinticuatro columnas
+L 0x5D19 avanza_la_fila  Sube la fila en 0x20 y para en 0x60
+L 0x5D20 pinta_y_avanza  Pinta la fila y pasa a la siguiente
+L 0x5D35 lee_la_posicion_de_scroll  Trae el caracter que hay donde va el scroll
+L 0x5D54 fila_del_borde  La fila de 0x1A40, la del borde del campo
+L 0x5D5C fila_anterior  Retrocede una fila de VRAM
+L 0x5D62 fila_siguiente  Avanza una fila de VRAM
+L 0x5D66 prepara_el_relleno_incremental  Veintiun valores consecutivos
+L 0x5D70 rellena_incremental  Escribe 0, 1, 2... hasta veinte: la fila identidad
+L 0x5D84 monta_el_plano_del_hoyo  Descomprime la paleta de 0xB3E2 y el plano que toque, y lo pinta en la franja de la derecha
+L 0x5DAF rellena_el_color_del_campo  Rellena de color las franjas de la vista
+L 0x5DD6 veintiun_patrones  Veintiuna columnas por fila de terreno
+L 0x5DD9 pinta_y_encadena  Dibuja el patron y salta al siguiente bloque de la cadena
+L 0x5DEC monta_el_plano  Paleta acumulada de 0xB349 en 0xE800, plano del hoyo de tabla_planos_de_hoyo en 0xEA14, y diecinueve filas por dibujar
+L 0x5E0E plano_desde_la_celda_22  El plano ocupa las columnas 22 a 31 de la pantalla
+L 0x5E11 plano_una_fila  Una fila del plano; con el espejo puesto, adelanta nueve y recorre hacia atras
+L 0x5E1F diez_columnas  El ancho del plano
+L 0x5E21 plano_una_celda  Dibuja la celda y mueve el puntero en el sentido que toque
+L 0x5E2C plano_siguiente_fila  Avanza diez en los datos y treinta y dos en la pantalla
+L 0x5E40 cuadro_del_golfista  Suma los pasos de tabla_pasos_golfista y devuelve el indice de cuadro acumulado
+L 0x5E47 suma_los_pasos  El bucle de esa suma
+L 0x5E4F devuelve_el_cuadro  Deja el acumulado en C y el paso actual en B
+L 0x5E66 pinta_un_patron  Copia el patron de 8x8 de tabla_patrones_terreno a la VRAM, espejandolo si el bit 7 de (0xE0A0) esta puesto
+L 0x5E89 espejo_ocho_filas  Ocho filas por patron
+L 0x5E8D espeja_un_byte  Le da la vuelta a los ocho bits con rlc y rra
+L 0x5E9A copia_el_patron  El caso normal, sin espejo
+L 0x5EA5 siguiente_de_la_cadena  Calcula el indice del terreno y avanza por la cadena de bloques
+L 0x5EBA suma_las_cabeceras  Cada cabecera dice cuanto saltar hasta el bloque siguiente
+L 0x5EC5 descomprime_el_bloque  Y lo descomprime en 0xEE00
+L 0x5ECB direccion_del_marcador  Dos multiplicaciones por ocho dan la posicion de VRAM
+L 0x5EEC multiplicador_base  Uno o dos, segun los bits de (0xE000)
+
+# ======================================================================
+# LA ARITMETICA: MULTIPLICAR, DIVIDIR Y MEDIR DISTANCIAS
+# ======================================================================
+L 0x5F01 multiplica_los_dos  Multiplica angulo por potencia con la rutina de abajo
+L 0x5F14 multiplica_y_junta  Multiplica y combina los dos resultados
+L 0x5F2D junta_los_bits  Mezcla el resultado con lo que ya habia
+L 0x5F3B multiplica  Multiplicacion de ocho por ocho bits: ocho pasos de sumar y desplazar
+L 0x5F43 multiplica_paso  El desplazamiento y la suma si el bit esta puesto
+L 0x5F47 multiplica_cierra  Devuelve el producto de dieciseis bits
+L 0x5F4C divide_diecisiete  Diecisiete pasos de desplazamiento sobre el vector de entrada
+L 0x5F53 divide_paso  Cada paso de esa division
+L 0x5F59 divide_baja  Baja el par HL un bit
+L 0x5F61 divide_por_restas  Resta DE y cuenta el cociente en C
+L 0x5F69 divide_y_dobla  Baja DE y sube BC a la vez: division y multiplicacion en el mismo bucle
+L 0x5F76 divide_devuelve  Deja el cociente y vuelve
+L 0x5F7C raiz_arranca  Prepara la busqueda con DE a cero
+L 0x5F81 raiz_por_impares  Resta impares sucesivos: la raiz cuadrada entera del cartucho
+L 0x5F8C raiz_devuelve  Deja la raiz en HL
+L 0x5F8F distancia_sin_signo  Diferencia absoluta de los dos ejes
+L 0x5F97 distancia_segundo_eje  El otro cateto
+L 0x5F9E suma_de_cuadrados  Eleva los dos al cuadrado y los suma
+L 0x5FB2 rumbo_y_distancia  Diferencia absoluta con el signo apuntado en el bit 6 de B
+L 0x5FBF rumbo_segundo_eje  Y el otro, con el signo en el bit 7
+L 0x5FC8 distancia_diagonal  La hipotenusa: suma de cuadrados y raiz
+L 0x5FE4 arranca_la_busqueda_de_rumbo  Prepara el recorrido de la tabla de rumbos
+L 0x5FEA busca_el_rumbo  Cuenta cuantas entradas de la tabla quedan por debajo: el arcotangente por tabla
+L 0x5FF3 junta_los_signos  Convierte los dos bits de signo en un rumbo con signo
+L 0x5FFF rumbo_negativo  El cuadrante que sale negado
+L 0x6003 rumbo_desplazado  El que va desplazado media vuelta
+L 0x600B rumbo_devuelve  Deja el rumbo listo
+L 0x600F componentes_negadas  Las mismas componentes, cambiadas de signo
+L 0x601B angulo_a_coordenadas  Convierte un rumbo en su pareja X,Y
+L 0x6028 coordenada_invertida  El cuadrante en el que hay que invertir antes de mirar la tabla
+
+# ======================================================================
+# LOS OBJETOS DEL HOYO Y EL DESCOMPRESOR
+# ======================================================================
+L 0x6032 coordenada_por_tabla  Con 0x40 o 0xC0 no hay nada que hacer; con el bit 6, invierte antes de mirar la tabla
+L 0x6043 entra_en_la_tabla  Los seis bits bajos indexan la tabla del swing
+L 0x6051 coordenada_devuelve  Recupera registros y sale
+L 0x6056 niega_de  Cero menos DE
+L 0x60A2 carga_los_sprites  Descomprime los diez sprites de 16x16 y los copia a la tabla de patrones de sprite del VDP, en VRAM 0x3800
+L 0x60F8 procesa_un_objeto  Calcula la casilla del objeto y copia sus tres bytes de atributo
+L 0x610B monta_los_objetos  Limpia el buffer de 0xE800 y recorre la lista de objetos del hoyo, uno a uno
+L 0x611A limpia_el_buffer  Los 512 bytes a cero antes de empezar
+L 0x6129 recorre_los_sub_bloques  Cada sub-bloque empieza por su cuenta de objetos
+L 0x614E objetos_extra  Dos objetos mas cuando el hoyo coincide con el ultimo cuadro
+L 0x6169 mira_la_franja_central  Comprueba si la columna cae en la calle o en el agua y marca los bits del elemento
+L 0x6180 dobla_y_junta  Dobla el valor y lo mezcla con la mascara
+L 0x6185 sube_diez  Suma 0x10 y vuelve al bucle
+L 0x6186 lee_la_casilla  Convierte el tile en direccion y, si no esta vacia, sigue leyendo
+L 0x6191 escribe_el_atributo  Deja C en el atributo; con el bit 2 puesto, cambia de estado
+L 0x61A3 mira_el_bit_tres  Con el bit 3 todavia puesto, sigue leyendo
+L 0x61BB sube_diez_mas  El otro camino que suma 0x10
+L 0x61BF mezcla_el_nibble  Con el bit 0 de B, mete el nibble bajo de C en el atributo
+L 0x61CE lee_el_siguiente  Trae el byte siguiente y marca bits segun su signo
+L 0x61DB mira_el_bit_seis  Uno de los dos bits de tipo
+L 0x61E3 mira_el_bit_cinco  Y el otro
+L 0x61EB separa_los_campos  Reparte el byte en nibble, E y C
+L 0x6206 ajusta_la_coordenada  El bit 4 de C corrige antes de multiplicar
+L 0x6212 posicion_del_elemento  De su codigo -tipo y coordenada- saca donde va en pantalla, con dos multiplicaciones
+L 0x624B cuadro_de_golpe_especial  Con acarreo, calcula el cuadro especial usando (0xE0B3)
+L 0x625B refleja_la_fila  Con el bit 7 de (0xE0A0), la fila pasa a ser 0xA8 menos ella
+L 0x6265 devuelve_la_fila  Deja el resultado en A
+L 0x6267 recorta_la_fila  La fila se queda dentro del rango 0x20-0xE0
+L 0x6273 fila_al_tope  El tope de arriba
+L 0x6277 casilla_del_objeto  Del codigo de tile saca su sitio en el buffer: nibble bajo la columna, nibble alto la fila, por cuatro
+L 0x6289 lista_del_hoyo  Los 18 punteros de 0x6299, indexados por el hoyo: arboles, bunkers y demas
+L 0xA875 limpia_para_el_fondo  Deja los 512 bytes del buffer a cero antes de elegir el fondo
+L 0xA87C elige_el_fondo  Segun el tipo de terreno, una paleta de tiles u otra
+L 0xA8A8 fondo_alternativo  La paleta de 0xA979
+L 0xA8AE descomprime_los_dos  El fondo en 0xE902 y la vista de terreno en 0xE800
+L 0xA8CB paleta_acumulada  Descomprime y convierte los bytes en codigos de tile de 16 bits acumulados: los mapas de indices leen de aqui
+L 0xA8DC separa_con_ceros  Escribe cada byte seguido de un cero, hacia atras: los convierte en valores de 16 bits
+L 0xA8E8 acumula_los_codigos  La suma corrida que convierte las diferencias en codigos absolutos
+L 0xA8FB descomprime  El descompresor: la cabecera de dos bytes dice cuantos bytes de FUENTE quedan
+L 0xA900 lee_un_byte  Copia literal, salvo que sea 0xFF
+L 0xA90C abre_la_racha  El 0xFF abre racha: cuenta y valor en los dos bytes siguientes
+L 0xA912 escribe_la_racha  Escribe el valor esas veces
+L 0xA91E cuenta_lo_escrito  Devuelve en BC cuantos bytes han salido
+
+
+# --- Tanda 1: arranque, pantalla de titulo, eleccion y pantalla de juego ---
+C 0x4011 la pila justo debajo de las variables de la BIOS
+C 0x4014 lee el registro de slots primarios
+C 0x4018 los bits 2 y 3 son el slot de la pagina 1
+C 0x401a subidos a los bits 4 y 5
+C 0x401e para dejarlos tambien como slot de la pagina 2
+C 0x4021 y con eso el cartucho de 32 KB se ve entero, en las dos paginas
+C 0x4024 0xC9 es un RET: el gancho H.TIMI queda desactivado
+C 0x4029 y lo mismo en 0xE0A5, que es codigo que vive en RAM
+C 0x402c 0xD0 en la fila del sprite 0 apaga TODOS los sprites de golpe
+C 0x4034 0xC2 es un jp nz: parchea la rutina de RAM de 0xE10E
+C 0x4039 monta las columnas del campo
+C 0x403c la pantalla de titulo, con su logotipo
+C 0x403f y la marca de la opcion elegida, que 0x419B deja en 0xC0
+C 0x4048 el bit 7 de (0xE001) pide el arranque
+C 0x404d y el resto de indicadores arrancan a cero
+C 0x405d el manejador TEMPORAL de interrupcion, el que remata la inicializacion
+C 0x4066 hasta que el bit 7 de (0xE005) no se levante, no se sigue
+C 0x4071 calla el canal de sonido
+C 0x407a el color de la pantalla de resultado, 0xF1: blanco sobre negro
+C 0x4084 y la tabla de nombres a espacios
+C 0x4089 el bit 6 dice si la ronda se ha acabado del todo
+C 0x4095 y 0x4105 es "GAME  OVER"
+C 0x40a0 con 0x40FA, "TOTAL SCORE", debajo
+C 0x40ab la puntuacion acumulada del jugador 1
+C 0x40af el patron de la cifra
+C 0x40b2 en VRAM 0x194A
+C 0x40bb el bit 7 de (0xE000) esta puesto con UN jugador: no hay segunda cifra que escribir
+C 0x40c2 y con dos, la del jugador 2
+C 0x40c5 en VRAM 0x198A
+C 0x40ce apunta los bloques de sonido en sus canales
+C 0x40d4 mientras (0xF403) no sea cero, el sonido sigue sonando
+C 0x40d8 con el bit 6 bajado, vuelve a jugar sin pasar por el titulo
+C 0x40f3 y al acabar, arranque en frio
+C 0x4111 las 768 celdas de la tabla de nombres
+C 0x4114 rellenas de espacios
+C 0x4120 el bit 6 de (0xE005)
+C 0x4122 elige 36 bytes
+C 0x4126 o el doble, 72
+C 0x4127 mas lo que traiga B
+C 0x4130 los siete bytes que quedan
+C 0x4133 con el bit 7 puesto: en esta fuente, eso los pasa a la version en alto
+C 0x4139 dos espacios de relleno al final
+C 0x4143 y once bytes de copia
+C 0x4148 la BIOS quiere la cuenta en BC
+C 0x4153 al volver, HL queda apuntando detras de lo copiado
+C 0x4156 la cuenta cabe en C: nunca se rellena mas de 255
+C 0x4162 con el bit 7 de (0xE002) puesto ya se hizo
+C 0x4164 y se marca para no repetirlo
+C 0x4169 un cuadro mas en el contador de (0xE072)
+C 0x4182 uno de cada cuatro cuadros
+C 0x418a con un solo jugador, siempre
+C 0x418d y con dos, solo si hay animacion pendiente
+C 0x4193 0xC2 otra vez, sobre la otra rutina de RAM
+C 0x419e la pagina de la VRAM
+C 0x41a3 el color de la pantalla de titulo
+C 0x41a6 SCREEN 1: 32 columnas
+C 0x41a9 el tile 0x40, que en esta pantalla es el simbolo (C) del copyright
+C 0x41af ocho bytes: un solo caracter
+C 0x41ba 304 bytes, 38 tiles: el logotipo de CASIO WORLD OPEN
+C 0x41ca y 0x21 en el tercero, que es donde va el logotipo
+C 0x41d7 tres filas de tres celdas
+C 0x41e3 y dieciseis filas de cuatro
+C 0x41fa "PLAYER SELECT"
+C 0x4205 "PLAY PUSH TRIGGER1", que se escribe DOS veces
+C 0x4212 en la fila de abajo, la del 2PLAY
+C 0x421a "TO START GAME"
+C 0x4225 "COPYRIGHT 1985 (C) CASIO"
+C 0x4230 y el "1" y el "2" de las dos filas, una celda por fila
+C 0x4248 las dos puntuaciones acumuladas, a cero
+C 0x4254 0xC3 es un salto: asi queda enganchado el gancho H.TIMI
+C 0x425a sin animacion pendiente
+C 0x4262 la opcion de partida arranca en 0xC0
+C 0x4266 en cuanto el sonido de la pantalla de titulo acaba, se juega
+C 0x426c lee el mando
+C 0x4270 (0xE0A8) trae el estado de la entrada
+C 0x4273 el bit 4 es el disparo: confirma la eleccion
+C 0x427b y el bit 1 a la otra
+C 0x427f 0x40 dibuja la marca en la fila de arriba; ese es el codigo de DOS jugadores, comprobado en openMSX
+C 0x4283 y 0xC0 la dibuja en la de abajo; ese es el codigo de UN jugador, y es con el que arranca
+C 0x428d apaga el parpadeo: la marca deja de alternar
+C 0x4292 y la eleccion queda guardada en (0xE000)
+C 0x4297 el bit 7 elige entre las dos marcas
+C 0x4298 con el puesto, el bloque que deja la marca en la fila de abajo
+C 0x429d y con el bajado, el que la deja en la de arriba
+C 0x42a3 y mientras el bit 4 de (0xE0BA) este puesto, se dibujan las dos: eso es el parpadeo
+C 0x42aa columna 5 de la fila 16
+C 0x42ad tres filas de un byte: la A arriba, nada en medio y la B abajo
+C 0x42b8 un manejador temporal mas
+C 0x42bf y a jugar
+C 0x44e1 que levanta (0xE004) para que 0x42D9 salga del bucle
+C 0x44e9 y 32 mas alla, la fila siguiente
+C 0x44ef C filas en total
+C 0x44f6 pasa por SCREEN 1 solo para quedarse con su juego de caracteres
+C 0x44ff 512 bytes: los 64 caracteres del 0x20 al 0x5F, leidos de la VRAM a la RAM
+C 0x4505 y vuelve a SCREEN 2
+C 0x4511 esos mismos caracteres van a VRAM 0x1500, el tercer tercio de patrones: con ellos se pinta el campo
+C 0x4514 color 0xF1 en los 6144 bytes de la tabla de color
+C 0x451f y los diez sprites de 16x16
+C 0x4525 0x5C bytes de la tabla que empieza en 0xE0C2
+C 0x455a la franja de color de VRAM 0x1A60, 160 celdas
+C 0x4562 y ya se puede encender la pantalla
+C 0x4565 registro 1 del VDP a 0xE2: pantalla encendida, interrupcion y sprites de 16x16
+C 0x456d el buffer del terreno, en 0xE800
+C 0x4571 treinta y dos celdas por franja
+C 0x4573 y cada casilla se queda con su propio indice bajo
+C 0x4580 las 608 celdas se vuelcan a la tabla de nombres
+
+
+# --- Tanda 2: ficha del hoyo, lista de tareas, turno y marcador ---
+C 0x458a el numero de hoyo cabe en un byte
+C 0x458c menos uno: el hoyo 1 es la entrada 0
+C 0x4590 cinco veces: cada ficha son cinco bytes
+C 0x4596 el primer byte es el tipo de terreno
+C 0x4599 y su nibble bajo va aparte, a (0xE09F)
+C 0x45a2 seguidos, a 0xE0A1
+C 0x4605 (0xE001) es la lista de tareas del cuadro: un bit por cosa que hacer
+C 0x4606 bit 7: empieza un hoyo
+C 0x4609 bit 6: cambia el turno
+C 0x460d bit 5: hay animacion de golpe
+C 0x4611 bit 4: hay animacion de camara
+C 0x4615 bit 3: toca actualizar el contador del jugador
+C 0x4619 y si no queda ninguno, se acaba
+C 0x461e con (0xE0BA) por debajo de 0xC0 no hay nada mas
+C 0x4621 y si no, (0xE006) pasa a (0xE005)
+C 0x462c marca que el hoyo esta recien empezado
+C 0x462f la ficha de cinco bytes del hoyo
+C 0x4632 y la lista de objetos que lleva dentro
+C 0x463c son la referencia de camara en columna
+C 0x4640 y en fila
+C 0x4647 se queda solo con los dos bits altos: el modo y el turno
+C 0x464a y arranca el hoyo con el turno del jugador 1
+C 0x464c con un solo jugador no hay nada que decidir
+C 0x4650 y con dos, empieza el que vaya peor de golpes
+C 0x4657 empatados, el jugador 1
+C 0x465a el jugador 1 va por delante
+C 0x465e y si no, le toca al 2
+C 0x4663 el numero de cuadro va en la parte alta
+C 0x466a el bit 5 del terreno
+C 0x466e pone el bit 7 de esa pareja
+C 0x4674 sin golpe en curso
+C 0x467d ni turno pendiente
+C 0x4680 las dos puntuaciones a cero
+C 0x4695 y los limites de camara
+C 0x46a5 0xC2 otra vez sobre las dos rutinas de RAM
+C 0x46b0 y la del 2
+C 0x46b5 0x7E menos la fila: el campo se dibuja de abajo arriba
+C 0x46ba el bit 7 del terreno elige entre las dos paletas
+C 0x46c0 con el signo cambiado
+C 0x46c2 y la paleta de 0xF7
+C 0x46c6 a partir de la fila 0xB0 ya no se ve
+C 0x46c9 y si se ve, el patron de relleno 0xC2
+C 0x46d2 con el bit 7 puesto, un solo jugador: la camara no cambia de dueno
+C 0x46d5 los bits 3 a 6 dicen si hay algo en marcha
+C 0x46db y con los bits 3 o 5 puestos, se queda asi
+C 0x46df si no, pasa al jugador 2
+C 0x46e7 la posicion del jugador 1
+C 0x46eb y la del 2
+C 0x46f3 con los parametros del hoyo
+C 0x46f6 gana el turno el que este mas lejos de la bandera
+C 0x46fc redibuja el marcador
+C 0x46ff y deja los valores de camara por defecto
+C 0x4702 centrada en el jugador que juega
+C 0x4708 la columna de referencia
+C 0x470e la fila
+C 0x4714 y el puntero de puntuacion
+C 0x471a el hoyo recien empezado se apunta tambien en (0xE0B6)
+C 0x4720 por encima de 0x7F, el rango mas ancho
+C 0x4726 de 0x66 a 0x7E, el de en medio
+C 0x472c y por debajo, el mas estrecho
+C 0x4730 con 0x0F en la parte alta
+C 0x4734 sin golpe dado
+C 0x473c y el angulo de tiro arranca en 0x80, que es el centro
+C 0x4746 y la del 2
+C 0x474d empatados, no se cambia el turno
+C 0x4751 y si el 2 esta mas lejos, le toca a el
+C 0x4757 el bit 7 de (0xE09E) dice si solo hay que refrescar
+C 0x475f el rotulo va a VRAM 0x1A78
+C 0x4762 siete celdas
+C 0x4769 la de 0x1A98
+C 0x4774 y la de 0x1AD8
+C 0x477e su casilla, VRAM 0x1AB6
+C 0x4781 y su puntuacion acumulada
+C 0x478b con el bit 7 de (0xE000) puesto no hay segundo jugador
+C 0x478d y si lo hay, su patron
+C 0x4790 en VRAM 0x1AF6
+C 0x479b el bit 7 de B es el signo de la puntuacion
+C 0x479d 0xAB es el mas
+C 0x47a1 y con el negativo, se le da la vuelta
+C 0x47a3 y 0xAD es el menos
+C 0x47a8 el signo, primero
+C 0x47a9 luego las decenas y unidades
+C 0x47af dos espacios de relleno
+C 0x47b8 0xB1 es el uno: las centenas se cuentan desde ahi
+C 0x47c1 se escribe la cifra de centenas
+C 0x47ce nueve bytes en total por marcador
+C 0x47d3 0xB0 es el cero
+C 0x47d5 restando de diez en diez
+C 0x47d9 sube la cifra de las decenas
+C 0x47dc y lo que sobra son las unidades, ya como caracter
+C 0x47e1 el bit 6 decide si se repinta entero
+C 0x47e3 y si no, solo cuando (0xE0C0) pasa de 0xA0
+C 0x47ea que se borra antes de repintar
+C 0x47ef (0xE0C0) a cero: la cuenta de espera vuelve a empezar
+C 0x47f2 marca que ya se ha repintado
+C 0x47f5 los cinco bits bajos son el codigo de mensaje
+C 0x47f7 cincuenta celdas de la fila
+C 0x4801 codigo 0: sin mensaje
+C 0x4804 codigo 1: un color
+C 0x4812 y del 3 en adelante, uno de los cinco textos de 0x485A
+C 0x4815 el primer byte de cada texto es su longitud
+C 0x4818 hasta llegar al que toca
+C 0x481b saltandose los que no
+C 0x4822 el texto se monta en 0xE12B
+C 0x482a la fila del jugador 1
+C 0x482d o la del 2, segun el bit 6 de (0xE000)
+C 0x4838 siete bytes de contador
+C 0x483e menos 0x1F: la casilla del texto que va al lado
+C 0x4846 y seis bytes de texto
+C 0x4851 y en la fila del otro jugador, un bloque de cinco filas por diez
+
+
+# --- Tanda 3: maquina de estados del turno, viento y objetos ---
+C 0x4888 (0xE06C) es la animacion de golpe
+C 0x488c y (0xE076) la de camara
+C 0x4890 con cualquiera de las tres en marcha, no se toca nada
+C 0x4891 el contador del jugador que juega
+C 0x4894 y calla el canal de sonido
+C 0x489b los cuatro bits bajos del estado
+C 0x489d con alguno puesto, solo hay que refrescar el marcador
+C 0x48a0 el bit 4 pide descontar el contador
+C 0x48a4 y el bit 7, sortear el golpe del ordenador
+C 0x48a8 mira el tile que hay bajo la bola
+C 0x48ab sin tile, el sonido de arranque
+C 0x48ae terreno 0x0F
+C 0x48b2 o terreno 0x04
+C 0x48ba y con el terreno 0x0C no suena nada
+C 0x48c0 0xBBFC es el bloque de sonido del canal 2
+C 0x48c9 el bit 6 de la lista de tareas: repintar
+C 0x48cf 0x81 en (0xE09E): el marcador se redibuja entero
+C 0x48d7 el otro jugador pasa a ser el activo
+C 0x48dd su columna
+C 0x48e3 su fila
+C 0x48e9 y su puntero de puntuacion, por partida doble
+C 0x48f1 0xBB86, el bloque del canal 2
+C 0x48f7 repinta el marcador
+C 0x48fa centra la camara en el que juega
+C 0x48fd y pone a cero los valores de trabajo
+C 0x490c al llegar a uno, se escala y sigue
+C 0x490f y al llegar a dos, se mira el terreno
+C 0x4914 el terreno 5 tambien escala
+C 0x491b los dos bits bajos de (0xE0BA)
+C 0x491f el bit 3 de la lista de tareas
+C 0x4926 0xBBEC, otro bloque del canal 2
+C 0x492e 0xBBD2, el bloque del canal 2
+C 0x4937 el numero de cuadro
+C 0x493a mezclado con (0xE0B9): asi sale el azar del cartucho
+C 0x493f los parametros del hoyo
+C 0x4942 y la posicion actual
+C 0x494e con distancia cero, se descuenta el contador
+C 0x4950 por cuatro
+C 0x4952 y con tope en veinte
+C 0x4959 la fuerza y el rumbo del viento de este cuadro
+C 0x495f pasados a componentes de columna y fila
+C 0x4967 sumado a la componente
+C 0x4968 esa es la salida en columna
+C 0x496f el bit 7 del terreno
+C 0x4970 le da la vuelta al signo de la fila
+C 0x4973 y el desplazamiento de fila
+C 0x497a esa es la salida en fila
+C 0x497e sin altura acumulada
+C 0x498b con un solo jugador, avisos directos
+C 0x498e y con dos, tambien si hay algo pendiente
+C 0x4992 turno del jugador 1
+C 0x4996 bit 4: animacion de camara
+C 0x499b y bit 5: animacion de golpe
+C 0x49a4 el bit 4 de la lista de tareas
+C 0x49a9 0xC2 sobre las dos rutinas de RAM otra vez
+C 0x49b3 el bit 7 de (0xE077): el aviso queda encendido
+C 0x49bb 0x82 en (0xE09E)
+C 0x49c0 0xBC13, en el canal 1
+C 0x49c9 el signo de (0xE075)
+C 0x49ca -2 si es positivo
+C 0x49ce y +2 si es negativo: la busqueda va en un sentido o en el otro
+C 0x49d0 la posicion desde la que se busca
+C 0x49d8 un paso en el sentido elegido
+C 0x49d9 pasado el limite 0x80, se acaba y le toca al otro
+C 0x49e1 monta el objeto que hay en esa casilla
+C 0x49e9 los bits 0 a 5 de su atributo
+C 0x49eb con alguno puesto, ese objeto vale
+C 0x49ee y si no, el siguiente
+C 0x49f1 el objeto encontrado pasa a ser la posicion del jugador
+C 0x49f4 y su puntero de puntuacion
+C 0x49fc la columna
+C 0x4a00 y la fila
+C 0x4a08 0xBC09, en el canal 2
+C 0x4a15 el bit 6 de (0xE000) dice quien juega
+C 0x4a1a IY a la ficha del jugador 2
+C 0x4a20 o a la del jugador 1
+C 0x4a24 y IX siempre a la ficha comun
+C 0x4a2e aqui se reparte al reves
+C 0x4a31 IX a la ficha del jugador 1
+C 0x4a37 o a la del 2
+C 0x4a3b y IY a la comun
+
+
+# --- Tanda 4: fichas de jugador, contador de golpes y cambio de hoyo ---
+C 0x4a43 el segundo bloque
+C 0x4a49 y el tercero
+C 0x4a54 tres parejas por bloque
+C 0x4a59 el par de la ficha de origen dice de donde se copia
+C 0x4a5f y el de la de destino, adonde
+C 0x4a63 la copia de verdad
+C 0x4a6a y otros dos en la de destino
+C 0x4a99 con la camara moviendose, no se toca el contador
+C 0x4aa1 el bit 6 dice de quien es el contador
+C 0x4aa5 dos bytes mas alla, el del jugador 2
+C 0x4aaa el terreno menos el contador
+C 0x4aab con el signo cambiado
+C 0x4aaf mas el byte siguiente de la ficha
+C 0x4ab0 por debajo de 100 vale
+C 0x4ab4 y por encima de 0xDC tambien, que es un numero negativo
+C 0x4ab8 lo demas se recorta a 99
+C 0x4abb el valor de antes de ajustarlo
+C 0x4abc mas 0x85: si desborda, el golpe ha sido fuerte
+C 0x4acb y 0xBCE6 en el canal 1: el sonido del golpe fuerte
+C 0x4ad2 por encima de 0x88, sin sonido
+C 0x4ada y el marcador se repinta
+C 0x4ae1 con el bit 7 puesto, un solo jugador
+C 0x4ae4 los bits 3 y 4 dicen si hay algo pendiente
+C 0x4aea con el turno en el jugador 2, se marcan otras dos senales
+C 0x4aec bits 5 y 3: golpe y contador
+C 0x4af0 y el bit 4 decide adonde se sigue
+C 0x4af8 bits 2 y 4 para el otro camino
+C 0x4b0d el hoyo 0x12 es el dieciocho: la ronda se acaba
+C 0x4b12 uno mas
+C 0x4b13 y en el diez se pasa de la ida a la vuelta
+C 0x4b17 el bit 7 de la lista de tareas: empieza hoyo
+C 0x4b1e la columna de 0xE0EA
+C 0x4b21 nueve celdas
+C 0x4b24 de cuatro en cuatro: una columna entera
+C 0x4b2b 0xC0 es el codigo de ronda terminada
+C 0x4b31 y la posicion vuelve a cero
+C 0x4b34 el bit 2 de la lista de tareas
+C 0x4b38 y 0x80 es el codigo de cambio de recorrido, de OUT a IN
+
+
+# --- Tanda 5: tile bajo el puntero, animacion del golpe y angulo ---
+C 0x4b3f guarda la posicion, que hace falta luego
+C 0x4b41 la fila entera de casillas
+C 0x4b47 y la columna
+C 0x4b49 entre ocho
+C 0x4b4e los tres bits bajos son la fila dentro de la casilla
+C 0x4b51 y eso da la direccion del patron en la VRAM
+C 0x4b56 el bit 13 sube a la tabla de color, 0x2000 mas alla
+C 0x4b5e los tres bits bajos de la columna
+C 0x4b61 hasta gastarlos
+C 0x4b64 rotando el patron para dejar el pixel que toca en el bit alto
+C 0x4b69 con el bit alto puesto
+C 0x4b6d el color se cambia por su nibble alto
+C 0x4b71 los cuatro bits del color
+C 0x4b73 el 0x0B es un color
+C 0x4b76 y el 0x06 el otro
+C 0x4b7b 0xD0 esconde el resto de sprites
+C 0x4b84 los 93 bytes de atributos de sprite se vuelcan de golpe
+C 0x4b8d siete contadores seguidos desde 0xE0BA
+C 0x4b8f uno mas cada cuadro
+C 0x4b93 y de paso avanza la musica
+C 0x4b99 (0xE06C) es la lista de fases de la animacion del golpe
+C 0x4b9a bit 7: mira los intentos
+C 0x4b9d bit 6: reinicia si toca
+C 0x4ba1 bit 5: invierte el angulo
+C 0x4ba5 bit 4: mira el angulo alto
+C 0x4ba9 bit 3: sube el angulo
+C 0x4bb1 y bit 1: el contador seis
+C 0x4bb8 sin nada pendiente ni camara en marcha
+C 0x4bba el color de indicador por defecto
+C 0x4bc3 por debajo de 0x60 intentos no hay nada que hacer
+C 0x4bc6 y si los hay, se atiende y se baja el bit
+C 0x4bd2 por encima de 0xD0, la fila se pone a cero
+C 0x4bd9 el rumbo y la distancia del viento
+C 0x4bdc que queda en (0xE070)
+C 0x4bdf y en (0xE06F)
+C 0x4be9 y el puntero de puntuacion se copia a (0xE098)
+C 0x4bec el tile que hay bajo el puntero
+C 0x4bf2 la fase de animacion, a cero
+C 0x4bf6 y con el color que toca, el bit 1
+C 0x4bfb por debajo de 8
+C 0x4bff el sprite de 0xB9F0
+C 0x4c04 justo 8
+C 0x4c06 el de 0xB777
+C 0x4c0b y por encima
+C 0x4c0d el de 0xB4AE
+C 0x4c13 se descomprime a la RAM
+C 0x4c18 y se repinta
+C 0x4c1e los limites de camara
+C 0x4c31 el bit 4 de (0xE0A7)
+C 0x4c38 angulo a cero
+C 0x4c3b y potencia a cero
+C 0x4c3e la camara vuelve al jugador
+C 0x4c47 el bit 6 de (0xE077): la camara esta ocupada
+C 0x4c4e sin direccion pulsada, tampoco
+C 0x4c56 el bit 1 de (0xE06D)
+C 0x4c5c o el bit 6 de (0xE069)
+C 0x4c60 suben el tope a 12
+C 0x4c66 hacia abajo
+C 0x4c69 y hacia arriba mientras no llegue al tope
+C 0x4c6b si lo alcanza, da la vuelta
+C 0x4c76 el terreno 0x0C es el especial
+C 0x4c7d y ahi el viento se congela en su valor base
+C 0x4c83 sin camara ocupada, se dibuja normal
+C 0x4c89 y con ella, el terreno se fuerza al especial
+C 0x4c94 el bit 7 del terreno elige por que lado entra
+C 0x4ca2 el 0x0C otra vez
+C 0x4cb2 tabla_terreno_b, un byte por tipo de terreno
+C 0x4cba ocho celdas de VRAM 0x17A8
+C 0x4cc8 que van a VRAM 0x1A93
+C 0x4cd7 sin acarreo, un paso a la derecha
+C 0x4cdb y con el, uno a la izquierda
+C 0x4ce0 el bit 3 de (0xE0A7)
+C 0x4ce4 le da la vuelta al paso
+C 0x4ce8 y el bit 2 decide si se aplica
+C 0x4cee el viento actual mas el paso
+C 0x4cf3 con el terreno especial
+C 0x4cf5 los limites son 0x30 y 0x60
+C 0x4cfa y con los demas, 0x10 y 0x20
+C 0x4d00 la posicion menos el paso
+C 0x4d05 y si cabe, se guarda
+C 0x4d09 el viento actual queda de base en (0xE075)
+C 0x4d0f pasado a coordenadas
+C 0x4d16 menos la componente
+C 0x4d1c con el signo cambiado
+C 0x4d1f esa es la fila
+C 0x4d26 el bit 4 de (0xE0BA)
+C 0x4d29 y sin el, el patron de relleno
+C 0x4d59 el bit 4 de (0xE0A8) es el disparo
+C 0x4d61 el bit 7 del angulo
+C 0x4d64 con el puesto, el angulo se complementa
+C 0x4d67 los intentos vuelven a cero
+C 0x4d6c y se repinta
+C 0x4d71 la fase 0x10 de la animacion
+C 0x4d79 cinco unidades de angulo por paso
+C 0x4d7c el bit 7 del resultado
+C 0x4d7f con el puesto, el angulo va de vuelta: asi oscila
+C 0x4d81 por 0x1E
+C 0x4d87 mas tres
+C 0x4d89 cuatro bytes de barra
+C 0x4d8f el byte arranca a cero
+C 0x4d91 ocho bits por byte
+C 0x4d93 rotando a la derecha
+C 0x4d96 hasta gastar la cuenta
+C 0x4d99 y el bit 7 puesto: asi se rellena la barra de potencia bit a bit
+C 0x4da3 los cuatro bytes recien montados
+C 0x4da6 a VRAM 0x1780
+C 0x4dab ocho celdas por fila
+C 0x4dbe con el terreno especial, otro camino
+C 0x4dc5 por debajo de 0x40 de angulo
+C 0x4dcf estado 3
+C 0x4dd6 la fase 8 de la animacion
+C 0x4ddd los ocho intentos
+C 0x4de0 estado 1
+C 0x4de8 el angulo por 0x3A
+C 0x4dee mas dos
+C 0x4df0 ese es el limite de camara
+C 0x4df5 el bit 7 de (0xE076): arranca la animacion de camara
+C 0x4df9 y la del golpe se apaga
+C 0x4e00 el bit 4 de (0xE0A8)
+C 0x4e07 cinco unidades mas de potencia
+C 0x4e0a el bit 7 del resultado
+C 0x4e0d le da la vuelta: la barra tambien oscila
+C 0x4e0f por 0x19
+C 0x4e16 y cien menos eso es lo que se ensena
+
+
+# --- Tanda 6: trayectoria, viento y lista de objetos relativa a la camara ---
+C 0x4e1f el terreno cabe en un byte
+C 0x4e24 tres veces: cada entrada de tabla_terreno_c son tres bytes
+C 0x4e27 el primer parametro, la altura
+C 0x4e29 el segundo
+C 0x4e2b y el tercero
+C 0x4e2f la altura por el angulo
+C 0x4e34 se queda con la parte alta
+C 0x4e37 mas 0x3A0
+C 0x4e3e el segundo parametro
+C 0x4e40 por el mismo angulo
+C 0x4e48 mas el tercero: ese es el alcance
+C 0x4e4d el bit 1 de (0xE06D)
+C 0x4e52 parte el alcance por dos
+C 0x4e5a el contador por seis
+C 0x4e62 comparado con el terreno
+C 0x4e66 la bandera se limpia
+C 0x4e6a y se levanta si el terreno se queda corto
+C 0x4e6e el rumbo del viento
+C 0x4e71 pasado a componentes
+C 0x4e74 la de columna
+C 0x4e78 y la de fila
+C 0x4e7f la potencia por 0x10
+C 0x4e87 con las componentes ya negadas
+C 0x4e90 el bit 7 de la potencia
+C 0x4e93 con el puesto, se complementa
+C 0x4e94 media vuelta de brujula
+C 0x4e99 o un cuarto
+C 0x4e9f y se escala
+C 0x4ea5 sumado al rumbo del viento
+C 0x4eab la componente de columna del efecto
+C 0x4eb0 el bit 7 del terreno
+C 0x4eb4 le da la vuelta a la fila
+C 0x4eb9 y la componente de fila
+C 0x4ebf los intentos vuelven a cero
+C 0x4ec2 estado 2
+C 0x4ef5 los ocho intentos
+C 0x4ef8 que se reinician
+C 0x4efa estado 4
+C 0x4f02 el bit 0 de (0xE06D)
+C 0x4f05 el bit 7 de (0xE007)
+C 0x4f0c y la fase 2
+C 0x4f14 los ocho intentos otra vez
+C 0x4f17 reiniciados
+C 0x4f1c el estado seis es el tope
+C 0x4f20 y si no, uno mas
+C 0x4f26 el bit 0 complementado: el interruptor entre los dos estados
+C 0x4f30 el estado 1
+C 0x4f32 pone los valores a cero
+C 0x4f35 y cualquier otro, a sus valores por defecto
+C 0x4f38 y rellena la columna del indicador
+C 0x4f43 el bloque de 0x502F
+C 0x4f4b justo 8
+C 0x4f4e el bloque de 0x4FFF
+C 0x4f56 y por encima
+C 0x4f59 el bloque de 0x4FC9
+C 0x4f62 cincuenta y cuatro bytes fijos
+C 0x4f65 al buffer de trabajo de 0xEE80
+C 0x4f6e por debajo del terreno 3, no se toca nada mas
+C 0x4f76 cambia el parametro por el otro
+C 0x4f78 que queda en 0xEE87
+C 0x4f82 el indice se escala
+C 0x4f85 y se suma a la segunda direccion
+C 0x4f86 el destino es la tira de atributos de 0xE0EA
+C 0x4f8d menos uno; negativo cierra la lista
+C 0x4f96 por tres: cada objeto son tres bytes
+C 0x4f9c la columna del objeto menos la de la camara
+C 0x4fa0 y la fila
+C 0x4fad con el turno en el jugador 2
+C 0x4fb1 el tipo 8
+C 0x4fb5 se dibuja como el 7
+C 0x4fbb el indice por cuatro
+C 0x4fbd mas 0x60: ese es el patron del sprite
+
+
+# --- Tanda 7: texto espejado, disparo, vuelo y arranque de hoyo ---
+C 0x5157 el destino en RAM
+C 0x515d cuarenta bytes tal cual
+C 0x5162 y los cincuenta y seis siguientes se leen HACIA ATRAS
+C 0x5168 cincuenta y seis
+C 0x516b cada byte a su sitio
+C 0x516c el origen retrocede
+C 0x516d y el destino avanza: por eso sale espejado
+C 0x5173 y solo los tres bits altos
+C 0x5175 entre cuatro: ocho bytes por entrada
+C 0x517d sobre el buffer de 0xEF00
+C 0x517f ocho celdas de texto
+C 0x51b0 el bit 7 de (0xE076): arranca el vuelo
+C 0x51b3 y el bit 6: sigue el que ya esta en marcha
+C 0x51bd los intentos contra el tope de (0xE0A6)
+C 0x51c1 pasado el tope, el vuelo se acaba
+C 0x51c9 la primera posicion
+C 0x51d0 la segunda
+C 0x51d7 la tercera
+C 0x51de y la cuarta
+C 0x51eb el puntero de puntuacion nuevo
+C 0x51ee y si el tile de ahi es el de llegada, se acaba
+C 0x51f6 calla el canal
+C 0x51fb 0xBBE2, el sonido del golpe
+C 0x5204 el rumbo del viento
+C 0x5207 con modulo 0x22
+C 0x520a pasado a componentes
+C 0x5211 y el de fila
+C 0x5215 la potencia del golpe dice cuantos pasos
+C 0x5229 y fila
+C 0x522a un paso menos
+C 0x523a si es otro jugador, se marca
+C 0x5240 con el bit 0 de (0xE000)
+C 0x5245 el byte alto del puntero
+C 0x5248 es el limite de camara en columna
+C 0x524e y en fila
+C 0x525b con el signo cambiado si hace falta
+C 0x5265 entre diecisiete
+C 0x526c y esa es la Y de la camara
+C 0x5277 los intentos a cero
+C 0x527a la distancia contra el limite
+C 0x5288 entre diecisiete otra vez
+C 0x528f y esa es la posicion en pantalla
+C 0x5293 el bloque se descomprime en 0xE800
+C 0x529b 0x460 bytes a VRAM 0x3B00
+C 0x52a7 (0xE077) es la lista de fases de la vista
+C 0x52a8 bit 7: monta el terreno
+C 0x52ab bit 6: cuadro par
+C 0x52af bit 5: el signo del angulo
+C 0x52b3 bit 4: reinicia los intentos
+C 0x52b6 bit 3: espera a los ocho
+C 0x52b9 bit 2: los dos vectores
+C 0x52c2 por debajo de 0x80 intentos, nada
+C 0x52c5 y si no, se limpia la lista
+C 0x52c7 y se repone el color del indicador
+C 0x52d1 los ocho intentos
+C 0x52d6 estado 2
+C 0x52dd y la fase 3
+C 0x52e4 sin ocho intentos, nada
+C 0x52e9 estado 1
+C 0x52ee la pareja por defecto: 1 y 15
+C 0x52f2 el primero, en (0xE11D)
+C 0x52f6 y el segundo, en (0xE115)
+C 0x52fa y la variante que los deja a cero
+C 0x5301 limpia el buffer del terreno
+C 0x5304 dibuja el plano del hoyo
+C 0x530a treinta y dos celdas
+C 0x530d de la franja de arriba
+C 0x5314 con el bit 7 puesto, un solo jugador
+C 0x5317 los bits 3 y 4
+C 0x531b turno del jugador 1
+C 0x531d y el bit 3 lo deja asi
+C 0x5321 si no, pasa al 2
+C 0x5329 la otra pareja de posiciones
+C 0x5338 y quien este mas lejos juega
+C 0x533e el numero de hoyo
+C 0x5341 a VRAM 0x17C0
+C 0x5347 0xF8 es la letra del recorrido
+C 0x5354 el par por cinco
+C 0x5358 mas 0xB0, que es el cero
+C 0x535a en VRAM 0x1A1A
+C 0x5363 la fila de salida de la bola
+C 0x5369 y su columna
+C 0x5377 el rumbo y la distancia hasta la bandera
+C 0x537a que queda de viento base
+C 0x5380 sus cuatro bits bajos
+C 0x5382 menos siete: una racha de -7 a +8
+C 0x5385 sumada al viento base
+C 0x538e y los limites de camara
+C 0x5394 el puntero de puntuacion arranca en 0x5088
+C 0x539e el rango de dificultad
+C 0x53a3 y el sprite del golfista de salida
+C 0x53a9 que se descomprime a la RAM
+C 0x53ae estado 1
+C 0x53b5 por 0x50
+C 0x53bb entre dos
+C 0x53bf pasado a componentes negadas
+C 0x53c2 la de columna
+C 0x53c6 y la de fila
+C 0x53cd el signo de la primera
+C 0x53d3 y el de la segunda
+C 0x53d9 cuatro rotaciones a cada vector
+C 0x53df cuatro pasadas
+C 0x53e2 cada una rota los tres bytes
+C 0x53eb el bit 7 del byte
+C 0x53ef y con el puesto, 0xFF de extension de signo
+
+
+# --- Tanda 8: camara, vuelo de la bola y distancias ---
+C 0x53f0 el byte de al lado
+C 0x53f6 el bit 0 del contador de cuadros
+C 0x53f7 en los impares no se toca nada
+C 0x53fb los parametros del hoyo
+C 0x5407 dos filas menos
+C 0x5409 ese es el primer limite
+C 0x540d recortado a cincuenta
+C 0x5412 y ese el segundo
+C 0x5416 el tope bajo, 0x18
+C 0x5418 por encima de 0x50
+C 0x541b el tope alto, 0x1C
+C 0x5421 el bit 4 de (0xE0A8) es el disparo
+C 0x5425 sin el, el angulo sigue oscilando
+C 0x5428 y la camara se recoloca
+C 0x542e los limites de pantalla
+C 0x5437 el bit 4 de (0xE0BA)
+C 0x543c y con el, se repone el color del borde
+C 0x5442 calla el canal
+C 0x5447 0xBBE2, el sonido del golpe
+C 0x5450 el bit 7 del angulo
+C 0x5453 con el puesto, se complementa
+C 0x5459 con el rumbo del viento
+C 0x545f la componente de columna
+C 0x5463 y la de fila
+C 0x5470 y el de la segunda
+C 0x5474 los intentos, a cero
+C 0x547a las dos se rotan una vez
+C 0x5480 tres bytes
+C 0x5483 rotados a la izquierda: eso es multiplicar por dos en 24 bits
+C 0x5489 dos vectores
+C 0x548b desde 0xE078
+C 0x548e seis bytes cada uno
+C 0x5496 mas el del vector de al lado, con acarreo
+C 0x549d y el siguiente vector, tres bytes mas alla
+C 0x54ab el signo de la columna
+C 0x54ae y se guarda ya escalada
+C 0x54b7 lo mismo con la fila
+C 0x54c3 la parte entera de la columna contra la del cuadro anterior
+C 0x54c5 si ha cambiado, hay que redibujar
+C 0x54cd y lo mismo con la fila
+C 0x54d9 contra la del hoyo
+C 0x54dc sin acarreo, la bola ya ha llegado
+C 0x54de ese es el nuevo puntero de puntuacion
+C 0x54e6 menos 0x14
+C 0x54e8 y ese el rango de dificultad
+C 0x54f9 a mas de 0x18 no ha llegado
+C 0x54fe a cero, se mira el borde
+C 0x5501 y a mas de uno, nada
+C 0x5502 el rumbo del viento
+C 0x5505 con modulo 0x400
+C 0x550f sumada a la fila
+C 0x5519 y a la columna: el rebote de la bola al caer cerca
+C 0x5523 0x80 en la fase
+C 0x552a mas 0x26
+C 0x552c y el borde esta en 0x4C
+C 0x5532 lo mismo con el otro eje
+C 0x5538 los intentos a cero
+C 0x553e y el sonido del canal 2
+C 0x5541 el color del indicador
+C 0x5546 la fase 2
+C 0x554e el bit 6 dice de quien es el contador
+C 0x5555 dos bytes mas alla, el del jugador 2
+C 0x5557 uno mas
+C 0x555a 0xF6 es la marca que se recupera despues
+C 0x555d con el signo puesto, se niega antes
+C 0x5560 y se escala
+C 0x5566 si el resultado da cero
+C 0x556a se deja en -1: asi nunca se queda parada
+C 0x556f el bit 7 de A: el signo
+C 0x5573 que se extiende a B
+C 0x5575 y se suma en dieciseis bits
+C 0x557b la coordenada vertical
+C 0x557e pasada a fila y columna
+C 0x5587 el bit 6 elige el jugador
+C 0x5589 la horizontal del jugador 2
+C 0x5591 o la del 1
+C 0x5597 tambien pasada a fila y columna
+C 0x55a2 y 0x50 menos la columna
+C 0x55a4 con el signo cambiado
+C 0x55ac la posicion menos el punto de salida
+C 0x55af en positivo
+C 0x55b4 y se tira el byte bajo
+C 0x55b9 y si era negativa, los dos bytes se cambian
+C 0x55c1 lo mismo contra el punto de llegada
+C 0x55d5 el modulo de las dos: la distancia de verdad
+C 0x55d8 por encima de 0x90 no se dibuja
+C 0x55e1 mas 0x60: ahi empiezan los patrones de sprite
+C 0x55ee 0x50 menos la columna
+C 0x55f2 y 0x88 menos eso
+C 0x55f8 menos el rumbo del viento
+C 0x55fd en positivo
+
+
+# --- Tanda 9: vuelo, aterrizaje y camara que persigue la bola ---
+C 0x5605 por el factor
+C 0x5608 y por ocho
+C 0x5610 y si no, se le da la vuelta antes
+C 0x5612 0x50 es el centro de la pantalla
+C 0x5616 sale con acarreo: hay algo que dibujar
+C 0x5619 el caso a cero
+C 0x561f el bit 7 de (0xE007): la bola vuela
+C 0x5622 y el bit 6: la camara la sigue
+C 0x5626 sin ninguno, el patron de relleno
+C 0x562e 0xBCF9, el sonido del vuelo
+C 0x5637 la distancia recorrida, a cero
+C 0x563b y los tres acumuladores de altura tambien
+C 0x5644 los dieciseis bytes de posicion
+C 0x5647 se copian a 0xE055, que es la copia de seguridad
+C 0x5659 uno mas en la cuenta
+C 0x565a y hasta que no toque el suelo, otra vuelta
+C 0x565c los cuadros que ha durado el vuelo
+C 0x5662 la columna donde ha caido
+C 0x5666 y su fila
+C 0x5667 mira que hay en esa casilla
+C 0x566a el objeto que sea
+C 0x566d y la posicion final
+C 0x5679 el limite de camara en columna
+C 0x567f y en fila
+C 0x5684 la posicion menos el limite
+C 0x5689 en positivo
+C 0x5690 entre diecisiete
+C 0x5696 y con el signo que tocaba
+C 0x569f la copia de seguridad vuelve a su sitio
+C 0x56aa los limites por defecto
+C 0x56af el rango de dificultad
+C 0x56ba y el indicador de terreno arranca en 0xEB8F
+C 0x56be los contadores del vuelo, a cero
+C 0x56ca el contador de cuadros tambien
+C 0x56d0 y los tres pares de camara
+C 0x56dc el bit 6 de (0xE007): ahora la camara persigue a la bola
+C 0x56e5 uno menos
+C 0x56e6 hasta el paso diecisiete
+C 0x56ed uno mas en (0xE034)
+C 0x56ef y solo se sigue en los pares
+C 0x56f1 acumula la posicion de los dos
+C 0x56f4 y la del bloque de seguimiento
+C 0x5701 el primer limite
+C 0x5705 menos el segundo: esa es la distancia
+C 0x5706 por encima de 0xA0, la camara ya no se mueve
+C 0x570a por encima de 0x30 se acerca
+C 0x5712 y en el paso 0x12 se para
+C 0x5716 uno mas
+C 0x571a y nueve mas
+C 0x5721 ocho de paso
+C 0x5728 y ocho tambien en la coordenada
+C 0x572f por debajo de 0x39 no se acerca mas
+C 0x5732 ni si el contador esta a cero
+C 0x5735 uno menos
+C 0x5736 dos franjas mas de terreno
+C 0x573d y ocho menos de coordenada
+C 0x5745 el signo de (0xE01D)
+C 0x5750 el cuadro entre cuatro
+C 0x5754 restado a la coordenada
+C 0x575b uno menos
+C 0x575c hasta el paso diecisiete
+C 0x5764 el primer limite
+C 0x5768 y el segundo
+C 0x576b 0x30 por defecto
+C 0x5770 y el terreno se redibuja
+C 0x5776 el bit 7 de (0xE01D)
+C 0x577d el bit 0 de (0xE007)
+C 0x5780 que se levanta aqui
+C 0x5785 mas 0x13
+C 0x5787 por ocho
+C 0x5791 ese es el limite nuevo
+C 0x5795 menos el viejo
+C 0x5797 y la diferencia se guarda
+C 0x579d por debajo de 0x58, cuatro
+C 0x57a3 por debajo de 0x78, ocho
+C 0x57a9 y por encima, doce
+C 0x57ad 0x98 menos el valor: la fila contada desde arriba
+C 0x57b3 el rango de dificultad
+C 0x57b6 y el parametro de sonido
+C 0x57bd los cuadros que llevaba el vuelo
+C 0x57c2 restados
+C 0x57c9 y si la diferencia es cero, se pone a uno para no dividir por cero
+C 0x57cd entre diecisiete
+C 0x57d0 con el signo cambiado
+C 0x57d7 y la otra igual
+C 0x57e4 por encima de 0xA4
+C 0x57e6 se fuerza el refresco
+C 0x57ec con distancia todavia pendiente
+C 0x57f2 el nibble bajo del estado
+C 0x57f8 y el vuelo se da por terminado
+C 0x57ff nueve columnas
+C 0x5802 las que ya llevan relleno se saltan
+C 0x5806 y a las demas, ocho mas
+C 0x5814 el primer par
+C 0x581b el segundo
+C 0x5824 un cuadro mas de vuelo
+C 0x582b el indicador de altura
+C 0x582e y su copia
+C 0x583a la columna del jugador que juega
+C 0x583d que va a (0xE0E6)
+C 0x5845 las variables del jugador 2
+C 0x584d o las del 1
+C 0x5856 y el resultado a (0xE116)
+C 0x5863 el puntero contra el limite de camara
+C 0x5867 y contra 0x98
+C 0x586e con el hoyo por debajo del diez
+C 0x5875 y el nibble bajo del estado a cero
+C 0x5878 en cualquiera de esos casos, patron de relleno
+
+
+# --- Tanda 10: acumuladores, escalado y montaje del HUD ---
+C 0x5887 la velocidad en columna
+C 0x588b sumada a la posicion
+C 0x5895 y la del otro eje
+C 0x589b su velocidad
+C 0x589f tambien sumada
+C 0x58ae la distancia recorrida mas el paso
+C 0x58b4 el bit 7 del paso: la bola ya baja
+C 0x58be ocho menos de contador
+C 0x58c8 mientras no llegue a cero, sigue el vuelo
+C 0x58cd la distancia vuelve a cero
+C 0x58d0 y avisa con acarreo: la bola ha aterrizado
+C 0x58d6 menos 0xD0
+C 0x58d8 y si no cabe en dieciseis, fuera de rango
+C 0x58df dentro del rango bajo
+C 0x58e1 y a partir de ocho
+C 0x58e5 se levanta el bit 0
+C 0x58ed los dos bytes de la pareja
+C 0x58f0 el signo del primero
+C 0x58f8 con el negativo, se resta
+C 0x58fc y con el positivo, se suma
+C 0x5900 la posicion de la estructura
+C 0x5906 y su velocidad, dos bytes mas alla
+C 0x590c sumadas
+C 0x590d y guardadas en la misma estructura
+C 0x5918 la parte alta por A
+C 0x591e y la baja
+C 0x5923 juntas: el escalado de 16 bits
+C 0x592b menos uno: el hoyo 1 es la entrada 0
+C 0x592c doblado: la tabla es de punteros
+C 0x5933 sobre la tabla de objetos por hoyo
+C 0x593e y el buffer del terreno limpio
+C 0x5944 el rotulo de 18 celdas, a VRAM 0x1A81
+C 0x594f y el de 6, a 0x1AC7
+C 0x595a la barra de POWER, espejada, a VRAM 0x17B8
+C 0x5963 la potencia por diez
+C 0x5969 mas 0xB0, que es el cero
+C 0x596b en VRAM 0x1ACE
+C 0x5974 por debajo del hoyo 10
+C 0x5978 el texto OUT
+C 0x597d y a partir de ahi, el texto IN, restando nueve
+C 0x5985 ocho celdas de texto
+C 0x598f menos el desplazamiento del recorrido
+C 0x5990 mas 0xB0: el numero del hoyo dentro de su vuelta
+C 0x599b "PAR" a VRAM 0x1AEE
+C 0x59a6 el par del hoyo, mas 0xB0
+C 0x59a8 en VRAM 0x1AF2
+C 0x59b1 las etiquetas fijas, 48 bytes a VRAM 0x1480
+C 0x59bc treinta y dos celdas de la franja de arriba
+C 0x59c7 color 0x8E en la de abajo
+C 0x59d1 y 0x8B en las 24 ultimas
+C 0x59d9 siete iconos de viento
+C 0x59e2 la cuenta
+C 0x59e4 y el valor
+C 0x59ea ocho celdas por icono
+C 0x59ef y una fila entera de salto
+C 0x59fe color 0x88 en la barra de golpe
+C 0x5a09 un bloque de cinco celdas
+C 0x5a18 menos uno: el hoyo 1 es la entrada 0
+C 0x5a1d tres veces: tres bytes por hoyo
+C 0x5a22 el bit 6 del terreno
+C 0x5a24 con el bajado, VRAM 0x1A5B
+C 0x5a29 y con el puesto, 0x1A56
+C 0x5a36 0x95 es el separador que va detras
+C 0x5a3e veintiuna filas
+C 0x5a43 desde 0xEA00
+C 0x5a4a 0x15 de salto en el origen
+
+
+# --- Tanda 11: el motor de dibujado del campo en perspectiva ---
+C 0x5b00 el hoyo, en B
+C 0x5b01 y el byte alto, en C
+C 0x5b03 primero el fondo del campo
+C 0x5b08 y el cuadro del golfista que toca
+C 0x5b10 doblado: la tabla de 0x6A2B es de punteros
+C 0x5b13 el puntero del primer cuadro
+C 0x5b17 que se descomprime en 0xEA00
+C 0x5b21 el segundo cuadro, un paso mas alla en la tabla
+C 0x5b30 la tabla de nombres
+C 0x5b34 se lee la celda que hay ahi
+C 0x5b45 el bit 7 del terreno
+C 0x5b49 con el puesto, el puntero se corre veinte celdas: la vista sale espejada
+C 0x5b4d veintiuna columnas de ancho
+C 0x5b53 el bit 7 del codigo
+C 0x5b57 con el puesto, el origen retrocede
+C 0x5b5a y si no, avanza
+C 0x5b5b el destino siempre avanza
+C 0x5b64 el byte del mapa
+C 0x5b6a por dos: la lista de 0xE800 es de codigos de 16 bits
+C 0x5b6c el codigo de tile, de dos bytes
+C 0x5b71 con el que se pinta el patron
+C 0x5b7b nueve columnas
+C 0x5b82 ocho mas de altura
+C 0x5b84 pasado 0x98 ya no cabe en pantalla
+C 0x5b88 se cuenta
+C 0x5b89 y se pone el patron de relleno
+C 0x5b8c cuatro bytes por columna
+C 0x5b93 con nueve columnas fuera
+C 0x5b98 la animacion del golpe se corta
+C 0x5b9e la primera franja, VRAM 0x1800
+C 0x5ba4 la segunda, 0x18E0
+C 0x5baa y la tercera, 0x19E0
+C 0x5bb3 el buffer de terreno de 0xEC00
+C 0x5bc5 dos pasos
+C 0x5bcd menos 0x20: una fila menos
+C 0x5bd1 y si se pasa, vuelve a 0x40
+C 0x5bd4 ochenta celdas
+C 0x5bdd y ocho mas para rematar
+C 0x5be9 el buffer de 0xEA00
+C 0x5bfb siete pasos
+C 0x5c06 veinticuatro columnas por fila
+C 0x5c17 y el buffer de 0xE800
+C 0x5c3d 0xFFEB es -21: el scroll retrocede una fila de la vista
+C 0x5c46 la posicion de origen
+C 0x5c49 0xA8 bytes, que son las celdas visibles
+C 0x5c4e traidas de la VRAM
+C 0x5c52 y una fila entera de salto
+C 0x5c72 y el destino en VRAM
+C 0x5c78 la primera franja
+C 0x5c7c 0x2000 mas alla
+C 0x5c82 y 0x100 en el origen
+C 0x5c88 la segunda franja
+C 0x5c8f los dos punteros avanzan lo mismo
+C 0x5c9f el byte que hay en esa posicion
+C 0x5ca3 por ocho: cada fila son ocho bytes
+C 0x5ca9 el buffer de terreno
+C 0x5caf la franja de 0x1900
+C 0x5cb2 y la de 0x1A00
+C 0x5ccd una fila mas
+C 0x5ccf siete pasos
+C 0x5cda veinticuatro columnas
+C 0x5d02 veinticuatro columnas otra vez
+C 0x5d1b y al llegar a 0x60 se da la vuelta
+C 0x5d25 con el terreno montado, el golfista encima
+C 0x5d30 tambien al llegar a 0x60
+C 0x5d36 el tercio 2 de la pantalla
+C 0x5d38 la posicion de scroll
+C 0x5d3c y ahi se pinta la fila de la vista
+C 0x5d40 veintiuna celdas mas de scroll
+
+
+# --- Tanda 12: el reproductor de sonido ---
+C 0xbd06 el puntero al bloque, byte bajo
+C 0xbd08 y byte alto
+C 0xbd0a y el canal queda encendido
+C 0xbd0f la base de las estructuras de canal, en la RAM de la BIOS
+C 0xbd13 el numero de canal entre ocho
+C 0xbd19 sumado a la base
+C 0xbd1b dos bytes mas alla arranca el bloque
+C 0xbd2a el canal 0
+C 0xbd2f el 1
+C 0xbd33 y el 2
+C 0xbd39 el registro 7 es el mezclador
+C 0xbd3c se conservan los dos bits altos
+C 0xbd3e y se apagan los tres tonos y los tres ruidos
+C 0xbd47 las tres banderas de canal ocupado, a cero
+C 0xbd50 dos canales
+C 0xbd52 desde la base
+C 0xbd59 con paso de 0x20: eso mide una estructura de canal
+C 0xbd61 vibrato
+C 0xbd64 y ruido, los dos a cero
+C 0xbd68 el registro 8 es el volumen del canal A
+C 0xbd6a mas el numero de canal
+C 0xbd70 y el canal se marca como libre
+C 0xbd77 la base de la primera estructura
+C 0xbd7e otra vez el paso de 0x20
+C 0xbd83 (0xF400) lleva que canal toca
+C 0xbd8d el canal apagado no suena
+C 0xbd92 un cuadro menos de la nota
+C 0xbd95 y hasta que no se agote, nada
+C 0xbd99 la duracion se recarga
+C 0xbda0 con vibrato, se recalcula el periodo
+C 0xbda7 y con ruido, el generador
+C 0xbdad al llegar a cero toca leer la orden siguiente
+C 0xbdb6 uno menos
+C 0xbdb9 y al agotarse, el canal se calla
+C 0xbdbf el numero de canal por dos: los periodos van en pareja
+C 0xbdc1 el byte bajo del periodo que hay puesto
+C 0xbdc7 y el alto
+C 0xbdd0 el signo del vibrato
+C 0xbdd4 con el negativo, se resta
+C 0xbddd y con el positivo, se suma
+C 0xbdde si se desborda, se deja como estaba
+C 0xbde2 el byte bajo del periodo
+C 0xbde5 y el registro siguiente, el alto
+C 0xbdea el registro 6 es el periodo del ruido
+C 0xbdf0 a cero
+C 0xbdf2 o a su tope, 0x1F
+C 0xbdfa el incremento cambia de signo: el ruido rebota entre los dos extremos
+C 0xbe00 mas el incremento
+C 0xbe03 sin pasar de 0x20
+C 0xbe0a y de vuelta al registro 6
+C 0xbe12 0x10 es el silencio
+C 0xbe18 el paso dentro del bloque
+C 0xbe23 ocho bits
+C 0xbe26 el divisor se parte por dos
+C 0xbe2b y se resta si cabe
+C 0xbe36 0x10 menos el cociente: el volumen va al reves
+C 0xbe3c el silencio se queda aqui
+C 0xbe3f entre dos
+C 0xbe4b mas el desplazamiento

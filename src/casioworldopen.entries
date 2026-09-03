@@ -1,0 +1,58 @@
+# Puntos de entrada de Casio World Open (Casio, 1985). ROM de 32 KB en
+# 0x4000-0xBFFF (dos paginas seguidas).
+#
+# La cabecera "AB" declara SOLO INIT, en 0x4010 (bytes 2-3: 10 40).
+# Comprobado en el volcado: 41 42 10 40 00 00 00 00 00 00.
+0x4010   # INIT, la BIOS lo llama tras inicializar la maquina
+
+# INIT engancha la interrupcion DOS VECES: en 0x4026 pone un 0xC9 (ret) de
+# seguridad en H.TIMI (0xFD9F) mientras monta el resto; en 0x4254-0x4256
+# pone el gancho de verdad, `ld hl,04B8Ah / ld (0FDA0h),hl / ld a,0C3h /
+# ld (0FD9Fh),a`, o sea jp 0x4B8A cada interrupcion de vblank.
+0x4b8a   # manejador de interrupcion (vblank), enganchado en H.TIMI por INIT (0x4254)
+
+# EL DESPACHO DE 0xBE8F. En 0xBE74, `jp (hl)` salta a una direccion leida de
+# una tabla de 15 punteros en 0xBFA4-0xBFC2 (comprobado: la lectura de la
+# ROM en Python da direcciones validas para los primeros 15 y basura
+# despues, asi que la tabla mide exactamente eso). El indice es (~A)*2, con
+# A un byte leido antes por L_BF84 y solo valido si A>=0xE0.
+0xbd6e   # tabla de despacho 0xBFA4, entrada 0
+0xbf17   # tabla de despacho 0xBFA4, entrada 2
+0xbf18   # tabla de despacho 0xBFA4, entrada 3
+0xbf03   # tabla de despacho 0xBFA4, entrada 4
+0xbf29   # tabla de despacho 0xBFA4, entrada 5
+0xbf47   # tabla de despacho 0xBFA4, entrada 6
+0xbf62   # tabla de despacho 0xBFA4, entradas 7-9 (repetida)
+0xbef1   # tabla de despacho 0xBFA4, entradas 10 y 13 (repetida)
+0xbf11   # tabla de despacho 0xBFA4, entrada 11
+0xbf80   # tabla de despacho 0xBFA4, entrada 12
+0xbf0b   # tabla de despacho 0xBFA4, entrada 14
+
+# L_4586 (0x4586, ya trazada) indexa una tabla de 18 entradas de 5 bytes en
+# 0x45A8 (una por hoyo, con (0xE0B4)-1) y hace `ret` sin volver a saltar:
+# el codigo real sigue justo despues de la tabla. Confirmado a mano
+# desensamblando esos bytes (un dispatcher de bits con jp c a 0x46CC,
+# 0x4885, 0x4A96, 0x4A9B, todos dentro de huecos sin explicar de antes).
+# 0x45A8 + 18*5 = 0x4602 exacto.
+0x4602   # sigue tras la tabla de 18*5 bytes de datos de hoyo en 0x45A8
+
+# 0x405D: `ld hl,0415bh / ld (0fda0h),hl` -engancha 0x415B como manejador
+# TEMPORAL de H.TIMI (mismo patron de evidencia que 0x4b8a, ya en esta
+# lista), sustituido mas tarde (0x406b) por el definitivo 0x4B8A cuando
+# (0xE005) bit 7 se pone a 1. Justo despues de codigo ya trazado (termina
+# en 0x415b, ver "CODIGO 0x410f..0x415b").
+0x415b   # manejador de interrupcion TEMPORAL de arranque, enganchado en H.TIMI por 0x405D
+
+# 0x42B5: `ld hl,044d3h / ld (0fda0h),hl` -mismo patron de evidencia,
+# engancha 0x44D3 como manejador de H.TIMI justo antes de montar la
+# pantalla de titulo (call L_44F3).
+0x44d3   # manejador de interrupcion enganchado en H.TIMI por 0x42B5
+
+# 0x5926-0x593A: bytes reales de codigo (push af/push de/ld a,(0e0b4h)/dec
+# a/add a,a/ld e,a/ld d,0/ld hl,6299h/add hl,de/ld e,(hl)/inc hl/ld
+# d,(hl)/ex de,hl/pop de/pop af/ret) -reproduce a mano la misma logica de
+# L_6289 (tabla_objetos_hoyo), asi que es una rutina real, aunque no se ha
+# encontrado el llamante estatico. Anadida por evidencia de forma, no de
+# llamante (igual que se hizo con 0x415b/0x44d3, con la salvedad de que
+# aqui no hay un patron H.TIMI que lo confirme).
+0x5926   # subrutina que repite la logica de L_6289 (tabla_objetos_hoyo); llamante sin localizar
