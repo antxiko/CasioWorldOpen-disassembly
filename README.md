@@ -35,8 +35,8 @@ describe, so they survive a re-trace. What the `.notes` holds:
 | | |
 |---|---|
 | named labels | 435 |
-| anchored comments | 1487 |
-| explained data ranges | 153 |
+| anchored comments | 1,487 |
+| explained data ranges | 158 |
 
 And the site's pictures are not captures: Python paints them by running the same
 chain the Z80 runs, and they are checked against openMSX's VRAM — the wordmark's

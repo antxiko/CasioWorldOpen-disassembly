@@ -82,14 +82,14 @@ footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
 .galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
 audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 </style>
-<div class="w"><nav class="top"><a href="index.html">Portada</a><a href="EMPEZAR.html">Empezar</a><a href="EL-JUEGO.html">El juego</a><a href="EL-CARTUCHO.html">El cartucho</a><a href="EL-CODIGO.html">El código</a><a href="HALLAZGOS.html">Hallazgos</a><a href="EN-EL-EMULADOR.html">En el emulador</a><a href="PREGUNTAS-ABIERTAS.html" style=color:var(--tinta)>Preguntas abiertas</a><a href="../OPEN-QUESTIONS.html" style="margin-left:auto;color:var(--oro)">English</a></nav>
+<div class="w"><nav class="top"><a href="index.html">Portada</a><a href="EMPEZAR.html">Empezar</a><a href="EL-JUEGO.html">El juego</a><a href="EL-CARTUCHO.html">El cartucho</a><a href="EL-CODIGO.html">El código</a><a href="LA-VISTA-3D.html">La vista 3D</a><a href="HALLAZGOS.html">Hallazgos</a><a href="EN-EL-EMULADOR.html">En el emulador</a><a href="PREGUNTAS-ABIERTAS.html" style=color:var(--tinta)>Preguntas abiertas</a><a href="../OPEN-QUESTIONS.html" style="margin-left:auto;color:var(--oro)">English</a></nav>
 <h1 id="preguntas-abiertas">Preguntas abiertas</h1>
 <p>Todo el binario está explicado y lo que dibuja está contrastado. Lo que queda son cabos.</p>
 <h2 id="el-formato-interno-de-las-listas-de-objetos">El formato interno de las listas de objetos</h2>
 <p>Las dieciocho listas de 0x6299 decodifican limpias —cuántos sub-bloques, cuántos objetos por bloque, y cuatro bytes por objeto: la casilla y tres de atributo— y de ahí salen los diez trazados y las ocho parejas espejadas.</p>
 <p>Lo que no está cerrado es <b>qué dice cada uno de esos tres bytes de atributo</b>. Por su rango parecen coordenadas dentro del hoyo, pero no está comprobado.</p>
-<h2 id="las-vistas-de-terreno-y-los-cuadros-del-golfista-fuera-de-contexto">Las vistas de terreno y los cuadros del golfista, fuera de contexto</h2>
-<p>Están decodificados y sus cuentas cuadran, pero son mapas de índices sobre una lista acumulada que depende del terreno del momento. Dibujarlos sueltos no tiene sentido, y dibujarlos en su sitio pide montar el estado completo de la partida.</p>
+<h2 id="las-vistas-de-terreno-y-los-cuadros-del-golfista-cerrado">~~Las vistas de terreno y los cuadros del golfista~~ — cerrado</h2>
+<p>Estaba abierto y ya no lo está. Los «cuadros del golfista» no eran del golfista: son los <b>ochenta mapas de la vista en perspectiva</b>, de 21×19, y el golfista son tres juegos de piezas de sprite aparte. La lista acumulada sobre la que se leen se monta en dos tandas seguidas en 0xE800, y contra la RAM del emulador sale sin un byte de diferencia. Está contado en <a href="LA-VISTA-3D.html">la vista 3D</a>.</p>
 <h2 id="la-cadena-de-bloques-de-0x9d2e">La cadena de bloques de 0x9D2E</h2>
 <p>Treinta y seis bloques encadenados sin tabla de punteros: cada cabecera dice cuánto saltar hasta el siguiente. Verificados uno a uno, pero sin identificar qué dibuja cada cual.</p>
 <h2 id="los-cuatro-bytes-que-sobran-de-la-ficha-del-hoyo">Los cuatro bytes que sobran de la ficha del hoyo</h2>

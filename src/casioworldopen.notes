@@ -124,116 +124,116 @@ D 0xab6e 0xab6f relleno_ab6e  Un byte suelto entre dos sprites, sin explicar (po
 # deja duda. Casi todas las salidas miden 294 bytes (el golfista completo);
 # diez miden 105 (una pose mas pequena, quiza el golpe de impacto,
 # tipicamente cada 5-6 fotogramas -mismo ritmo que DATA_5E54-).
-D 0x6a2b 0x6aef tabla_cuadros_del_golfista  98 punteros de 16 bits a sprites del golfista, indexados por el acumulado de 0x5E40 desde 0x5AFD (0x5B0D)
+D 0x6a2b 0x6aef tabla_vistas_del_campo  98 punteros de 16 bits a los MAPAS DE LA VISTA en perspectiva, NO a cuadros de un golfista. Van en dieciocho grupos, uno por hoyo, y tabla_tramos_por_hoyo (0x5E54) dice cuantos caen en cada grupo: el primero del grupo son 105 bytes (21x5, el cielo) y los demas 294 (21x14, el suelo de cada tramo). 0x5B17 y 0x5B27 los descomprimen SEGUIDOS en 0xEA00 y 0xEA69, que es 0xEA00+105, y juntos hacen 399 bytes = 19 filas de 21 columnas
 F 0x6a2b w6
 
-D 0x6aef 0x6b20 cuadro_golfista_01  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (49 bytes fuente, 105 de salida)
+D 0x6aef 0x6b20 vista_hoyo_01_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 1. Comprimido con 0xA8FB (49 bytes fuente, 105 de salida).
 F 0x6aef 16
-D 0x6b20 0x6bc3 cuadro_golfista_02  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de salida)
+D 0x6b20 0x6bc3 vista_hoyo_01_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 1. Comprimido con 0xA8FB (163 bytes fuente, 294 de salida).
 F 0x6b20 16
-D 0x6bc3 0x6c6b cuadro_golfista_03  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (168 bytes fuente, 294 de salida)
+D 0x6bc3 0x6c6b vista_hoyo_01_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 1. Comprimido con 0xA8FB (168 bytes fuente, 294 de salida).
 F 0x6bc3 16
-D 0x6c6b 0x6d12 cuadro_golfista_04  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (167 bytes fuente, 294 de salida)
+D 0x6c6b 0x6d12 vista_hoyo_01_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 1. Comprimido con 0xA8FB (167 bytes fuente, 294 de salida).
 F 0x6c6b 16
-D 0x6d12 0x6d8c cuadro_golfista_05  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (122 bytes fuente, 294 de salida)
+D 0x6d12 0x6d8c vista_hoyo_01_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 1. Comprimido con 0xA8FB (122 bytes fuente, 294 de salida).
 F 0x6d12 16
-D 0x6d8c 0x6e29 cuadro_golfista_06  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (157 bytes fuente, 294 de salida)
+D 0x6d8c 0x6e29 vista_hoyo_01_tramo_5  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 1. Comprimido con 0xA8FB (157 bytes fuente, 294 de salida).
 F 0x6d8c 16
-D 0x6e29 0x6e64 cuadro_golfista_07  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (59 bytes fuente, 105 de salida)
+D 0x6e29 0x6e64 vista_hoyo_03_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 3; lo comparten tambien los hoyo.tramo 12.0. Comprimido con 0xA8FB (59 bytes fuente, 105 de salida).
 F 0x6e29 16
-D 0x6e64 0x6f19 cuadro_golfista_08  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (181 bytes fuente, 294 de salida)
+D 0x6e64 0x6f19 vista_hoyo_03_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 3; lo comparten tambien los hoyo.tramo 12.1. Comprimido con 0xA8FB (181 bytes fuente, 294 de salida).
 F 0x6e64 16
-D 0x6f19 0x6fc5 cuadro_golfista_09  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (172 bytes fuente, 294 de salida)
+D 0x6f19 0x6fc5 vista_hoyo_03_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 3; lo comparten tambien los hoyo.tramo 12.2. Comprimido con 0xA8FB (172 bytes fuente, 294 de salida).
 F 0x6f19 16
-D 0x6fc5 0x7064 cuadro_golfista_10  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (159 bytes fuente, 294 de salida)
+D 0x6fc5 0x7064 vista_hoyo_03_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 3; lo comparten tambien los hoyo.tramo 12.3. Comprimido con 0xA8FB (159 bytes fuente, 294 de salida).
 F 0x6fc5 16
-D 0x7064 0x70e9 cuadro_golfista_11  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (133 bytes fuente, 294 de salida)
+D 0x7064 0x70e9 vista_hoyo_03_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 3; lo comparten tambien los hoyo.tramo 12.4. Comprimido con 0xA8FB (133 bytes fuente, 294 de salida).
 F 0x7064 16
-D 0x70e9 0x718a cuadro_golfista_12  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (161 bytes fuente, 294 de salida)
+D 0x70e9 0x718a vista_hoyo_03_tramo_5  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 3; lo comparten tambien los hoyo.tramo 12.5. Comprimido con 0xA8FB (161 bytes fuente, 294 de salida).
 F 0x70e9 16
-D 0x718a 0x71bb cuadro_golfista_13  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (49 bytes fuente, 105 de salida)
+D 0x718a 0x71bb vista_hoyo_05_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 5; lo comparten tambien los hoyo.tramo 7.0. Comprimido con 0xA8FB (49 bytes fuente, 105 de salida).
 F 0x718a 16
-D 0x71bb 0x727f cuadro_golfista_14  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (196 bytes fuente, 294 de salida)
+D 0x71bb 0x727f vista_hoyo_05_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 5; lo comparten tambien los hoyo.tramo 7.1. Comprimido con 0xA8FB (196 bytes fuente, 294 de salida).
 F 0x71bb 16
-D 0x727f 0x7339 cuadro_golfista_15  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (186 bytes fuente, 294 de salida)
+D 0x727f 0x7339 vista_hoyo_05_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 5; lo comparten tambien los hoyo.tramo 7.2. Comprimido con 0xA8FB (186 bytes fuente, 294 de salida).
 F 0x727f 16
-D 0x7339 0x73e8 cuadro_golfista_16  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (175 bytes fuente, 294 de salida)
+D 0x7339 0x73e8 vista_hoyo_05_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 5; lo comparten tambien los hoyo.tramo 7.3. Comprimido con 0xA8FB (175 bytes fuente, 294 de salida).
 F 0x7339 16
-D 0x73e8 0x7471 cuadro_golfista_17  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (137 bytes fuente, 294 de salida)
+D 0x73e8 0x7471 vista_hoyo_05_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 5; lo comparten tambien los hoyo.tramo 7.4. Comprimido con 0xA8FB (137 bytes fuente, 294 de salida).
 F 0x73e8 16
-D 0x7471 0x7500 cuadro_golfista_18  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (143 bytes fuente, 294 de salida)
+D 0x7471 0x7500 vista_hoyo_05_tramo_5  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 5; lo comparten tambien los hoyo.tramo 7.5. Comprimido con 0xA8FB (143 bytes fuente, 294 de salida).
 F 0x7471 16
-D 0x7500 0x753b cuadro_golfista_19  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (59 bytes fuente, 105 de salida)
+D 0x7500 0x753b vista_hoyo_09_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 9; lo comparten tambien los hoyo.tramo 13.0. Comprimido con 0xA8FB (59 bytes fuente, 105 de salida).
 F 0x7500 16
-D 0x753b 0x75f8 cuadro_golfista_20  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (189 bytes fuente, 294 de salida)
+D 0x753b 0x75f8 vista_hoyo_09_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 9; lo comparten tambien los hoyo.tramo 13.1. Comprimido con 0xA8FB (189 bytes fuente, 294 de salida).
 F 0x753b 16
-D 0x75f8 0x76a8 cuadro_golfista_21  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (176 bytes fuente, 294 de salida)
+D 0x75f8 0x76a8 vista_hoyo_09_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 9; lo comparten tambien los hoyo.tramo 13.2. Comprimido con 0xA8FB (176 bytes fuente, 294 de salida).
 F 0x75f8 16
-D 0x76a8 0x7734 cuadro_golfista_22  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (140 bytes fuente, 294 de salida)
+D 0x76a8 0x7734 vista_hoyo_09_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 9; lo comparten tambien los hoyo.tramo 13.3. Comprimido con 0xA8FB (140 bytes fuente, 294 de salida).
 F 0x76a8 16
-D 0x7734 0x77de cuadro_golfista_23  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (170 bytes fuente, 294 de salida)
+D 0x7734 0x77de vista_hoyo_09_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 9; lo comparten tambien los hoyo.tramo 13.4. Comprimido con 0xA8FB (170 bytes fuente, 294 de salida).
 F 0x7734 16
-D 0x77de 0x780d cuadro_golfista_24  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (47 bytes fuente, 105 de salida)
+D 0x77de 0x780d vista_hoyo_08_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 8; lo comparten tambien los hoyo.tramo 15.0. Comprimido con 0xA8FB (47 bytes fuente, 105 de salida).
 F 0x77de 16
-D 0x780d 0x78e8 cuadro_golfista_25  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (219 bytes fuente, 294 de salida)
+D 0x780d 0x78e8 vista_hoyo_08_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 8; lo comparten tambien los hoyo.tramo 15.1. Comprimido con 0xA8FB (219 bytes fuente, 294 de salida).
 F 0x780d 16
-D 0x78e8 0x79ad cuadro_golfista_26  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (197 bytes fuente, 294 de salida)
+D 0x78e8 0x79ad vista_hoyo_08_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 8; lo comparten tambien los hoyo.tramo 15.2. Comprimido con 0xA8FB (197 bytes fuente, 294 de salida).
 F 0x78e8 16
-D 0x79ad 0x7a56 cuadro_golfista_27  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (169 bytes fuente, 294 de salida)
+D 0x79ad 0x7a56 vista_hoyo_08_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 8; lo comparten tambien los hoyo.tramo 15.3. Comprimido con 0xA8FB (169 bytes fuente, 294 de salida).
 F 0x79ad 16
-D 0x7a56 0x7b25 cuadro_golfista_28  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (207 bytes fuente, 294 de salida)
+D 0x7a56 0x7b25 vista_hoyo_08_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 8; lo comparten tambien los hoyo.tramo 15.4. Comprimido con 0xA8FB (207 bytes fuente, 294 de salida).
 F 0x7a56 16
-D 0x7b25 0x7b53 cuadro_golfista_29  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (46 bytes fuente, 105 de salida)
+D 0x7b25 0x7b53 vista_hoyo_04_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 4; lo comparten tambien los hoyo.tramo 11.0. Comprimido con 0xA8FB (46 bytes fuente, 105 de salida).
 F 0x7b25 16
-D 0x7b53 0x7bf6 cuadro_golfista_30  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de salida)
+D 0x7b53 0x7bf6 vista_hoyo_04_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 4; lo comparten tambien los hoyo.tramo 11.1. Comprimido con 0xA8FB (163 bytes fuente, 294 de salida).
 F 0x7b53 16
-D 0x7bf6 0x7c8b cuadro_golfista_31  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (149 bytes fuente, 294 de salida)
+D 0x7bf6 0x7c8b vista_hoyo_04_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 4; lo comparten tambien los hoyo.tramo 11.2. Comprimido con 0xA8FB (149 bytes fuente, 294 de salida).
 F 0x7bf6 16
-D 0x7c8b 0x7d29 cuadro_golfista_32  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (158 bytes fuente, 294 de salida)
+D 0x7c8b 0x7d29 vista_hoyo_04_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 4; lo comparten tambien los hoyo.tramo 11.3. Comprimido con 0xA8FB (158 bytes fuente, 294 de salida).
 F 0x7c8b 16
-D 0x7d29 0x7d8d cuadro_golfista_33  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (100 bytes fuente, 294 de salida)
+D 0x7d29 0x7d8d vista_hoyo_04_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 4; lo comparten tambien los hoyo.tramo 11.4. Comprimido con 0xA8FB (100 bytes fuente, 294 de salida).
 F 0x7d29 16
-D 0x7d8d 0x7dcb cuadro_golfista_34  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (62 bytes fuente, 105 de salida)
+D 0x7d8d 0x7dcb vista_hoyo_02_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 2; lo comparten tambien los hoyo.tramo 4.5, 11.5, 14.0. Comprimido con 0xA8FB (62 bytes fuente, 105 de salida).
 F 0x7d8d 16
-D 0x7dcb 0x7eb1 cuadro_golfista_35  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (230 bytes fuente, 294 de salida)
+D 0x7dcb 0x7eb1 vista_hoyo_02_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 2; lo comparten tambien los hoyo.tramo 14.1. Comprimido con 0xA8FB (230 bytes fuente, 294 de salida).
 F 0x7dcb 16
-D 0x7eb1 0x7f69 cuadro_golfista_36  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (184 bytes fuente, 294 de salida)
+D 0x7eb1 0x7f69 vista_hoyo_02_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 2; lo comparten tambien los hoyo.tramo 14.2. Comprimido con 0xA8FB (184 bytes fuente, 294 de salida).
 F 0x7eb1 16
-D 0x7f69 0x801b cuadro_golfista_37  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (178 bytes fuente, 294 de salida)
+D 0x7f69 0x801b vista_hoyo_02_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 2; lo comparten tambien los hoyo.tramo 14.3. Comprimido con 0xA8FB (178 bytes fuente, 294 de salida).
 F 0x7f69 16
-D 0x801b 0x804e cuadro_golfista_38  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (51 bytes fuente, 105 de salida)
+D 0x801b 0x804e vista_hoyo_10_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 10; lo comparten tambien los hoyo.tramo 17.0. Comprimido con 0xA8FB (51 bytes fuente, 105 de salida).
 F 0x801b 16
-D 0x804e 0x8116 cuadro_golfista_39  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (200 bytes fuente, 294 de salida)
+D 0x804e 0x8116 vista_hoyo_10_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 10; lo comparten tambien los hoyo.tramo 17.1. Comprimido con 0xA8FB (200 bytes fuente, 294 de salida).
 F 0x804e 16
-D 0x8116 0x81dc cuadro_golfista_40  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (198 bytes fuente, 294 de salida)
+D 0x8116 0x81dc vista_hoyo_10_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 10; lo comparten tambien los hoyo.tramo 17.2. Comprimido con 0xA8FB (198 bytes fuente, 294 de salida).
 F 0x8116 16
-D 0x81dc 0x8271 cuadro_golfista_41  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (149 bytes fuente, 294 de salida)
+D 0x81dc 0x8271 vista_hoyo_10_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 10; lo comparten tambien los hoyo.tramo 17.3. Comprimido con 0xA8FB (149 bytes fuente, 294 de salida).
 F 0x81dc 16
-D 0x8271 0x8302 cuadro_golfista_42  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (145 bytes fuente, 294 de salida)
+D 0x8271 0x8302 vista_hoyo_10_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 10; lo comparten tambien los hoyo.tramo 17.4. Comprimido con 0xA8FB (145 bytes fuente, 294 de salida).
 F 0x8271 16
-D 0x8302 0x839b cuadro_golfista_43  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (153 bytes fuente, 294 de salida)
+D 0x8302 0x839b vista_hoyo_10_tramo_5  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 10; lo comparten tambien los hoyo.tramo 17.5. Comprimido con 0xA8FB (153 bytes fuente, 294 de salida).
 F 0x8302 16
-D 0x839b 0x83d0 cuadro_golfista_44  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (53 bytes fuente, 105 de salida)
+D 0x839b 0x83d0 vista_hoyo_06_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 6; lo comparten tambien los hoyo.tramo 16.0. Comprimido con 0xA8FB (53 bytes fuente, 105 de salida).
 F 0x839b 16
-D 0x83d0 0x8473 cuadro_golfista_45  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de salida)
+D 0x83d0 0x8473 vista_hoyo_06_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 6; lo comparten tambien los hoyo.tramo 16.1. Comprimido con 0xA8FB (163 bytes fuente, 294 de salida).
 F 0x83d0 16
-D 0x8473 0x854b cuadro_golfista_46  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (216 bytes fuente, 294 de salida)
+D 0x8473 0x854b vista_hoyo_06_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 6; lo comparten tambien los hoyo.tramo 16.2. Comprimido con 0xA8FB (216 bytes fuente, 294 de salida).
 F 0x8473 16
-D 0x854b 0x85c9 cuadro_golfista_47  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (126 bytes fuente, 294 de salida)
+D 0x854b 0x85c9 vista_hoyo_06_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 6; lo comparten tambien los hoyo.tramo 16.3. Comprimido con 0xA8FB (126 bytes fuente, 294 de salida).
 F 0x854b 16
-D 0x85c9 0x867c cuadro_golfista_48  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (179 bytes fuente, 294 de salida)
+D 0x85c9 0x867c vista_hoyo_06_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 6; lo comparten tambien los hoyo.tramo 16.4. Comprimido con 0xA8FB (179 bytes fuente, 294 de salida).
 F 0x85c9 16
-D 0x867c 0x86b1 cuadro_golfista_49  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (53 bytes fuente, 105 de salida)
+D 0x867c 0x86b1 vista_hoyo_18_cielo  Mapa de indices de la VISTA en perspectiva: las CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo 18. Comprimido con 0xA8FB (53 bytes fuente, 105 de salida).
 F 0x867c 16
-D 0x86b1 0x879f cuadro_golfista_50  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (238 bytes fuente, 294 de salida)
+D 0x86b1 0x879f vista_hoyo_18_tramo_1  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 18. Comprimido con 0xA8FB (238 bytes fuente, 294 de salida).
 F 0x86b1 16
-D 0x879f 0x8899 cuadro_golfista_51  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (250 bytes fuente, 294 de salida)
+D 0x879f 0x8899 vista_hoyo_18_tramo_2  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 18. Comprimido con 0xA8FB (250 bytes fuente, 294 de salida).
 F 0x879f 16
-D 0x8899 0x898a cuadro_golfista_52  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (241 bytes fuente, 294 de salida)
+D 0x8899 0x898a vista_hoyo_18_tramo_3  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 18. Comprimido con 0xA8FB (241 bytes fuente, 294 de salida).
 F 0x8899 16
-D 0x898a 0x8a63 cuadro_golfista_53  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (217 bytes fuente, 294 de salida)
+D 0x898a 0x8a63 vista_hoyo_18_tramo_4  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 18. Comprimido con 0xA8FB (217 bytes fuente, 294 de salida).
 F 0x898a 16
-D 0x8a63 0x8b5e cuadro_golfista_54  Sprite del golfista comprimido con el formato de 0xA8FB, decodificado y verificado en Python (251 bytes fuente, 294 de salida)
+D 0x8a63 0x8b5e vista_hoyo_18_tramo_5  Mapa de indices de la VISTA en perspectiva: las CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 18. Comprimido con 0xA8FB (251 bytes fuente, 294 de salida).
 F 0x8a63 16
 # ======================================================================
 # DOS SPRITES DE FONDO FIJOS EN 0xA926/0xA979 (0xA875, la rutina que
@@ -403,11 +403,11 @@ F 0xb43b 16
 D 0xb472 0xb4ae plano_hoyo_14  Sprite comprimido con el formato de 0xA8FB, decodificado y verificado en Python (60 bytes fuente, 100 de salida)
 F 0xb472 16
 
-D 0xb4ae 0xb777 plano_hoyo_15  Sprite comprimido con el formato de 0xA8FB, uno de tres elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en Python (713 bytes fuente, 1120 de salida)
+D 0xb4ae 0xb777 golfista_palos_9_y_mas  EL GOLFISTA para los palos por encima del 8: 35 piezas de sprite de 16x16 (1120 bytes), copiadas a VRAM 0x3B00 desde 0x4C13. Cada fotograma del swing lo componen hasta NUEVE de estas piezas superpuestas, cada una con su color; las posiciones salen de datos_del_golfista (0x5053) y el patron de indice*4+0x60
 F 0xb4ae 16
-D 0xb777 0xb9f0 plano_hoyo_16  Sprite comprimido con el formato de 0xA8FB, uno de tres elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en Python (633 bytes fuente, 928 de salida)
+D 0xb777 0xb9f0 golfista_palo_8  EL GOLFISTA para el palo 8: 29 piezas de sprite de 16x16 (928 bytes). Ocho piezas por fotograma, posiciones en 0x50BC y listas en 0x4FFF
 F 0xb777 16
-D 0xb9f0 0xbb86 plano_hoyo_17  Sprite comprimido con el formato de 0xA8FB, uno de tres elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en Python (406 bytes fuente, 704 de salida)
+D 0xb9f0 0xbb86 golfista_palos_1_a_7  EL GOLFISTA para los palos del 1 al 7, el mas lejano de la camara: 22 piezas de sprite de 16x16 (704 bytes). Seis piezas por fotograma, posiciones en 0x5113 y listas en 0x502F
 F 0xb9f0 16
 
 # ======================================================================
@@ -487,7 +487,7 @@ F 0x485a 16
 D 0x487e 0x4885 texto_titulo_06  Texto corto, 7 bytes (0x475C)
 F 0x487e 16
 
-D 0x5e54 0x5e66 tabla_pasos_golfista  18 pasos (tipico 4-6) sumados por 0x5E40 para calcular el indice acumulado de tabla_cuadros_del_golfista
+D 0x5e54 0x5e66 tabla_tramos_por_hoyo  Cuantas entradas de tabla_vistas_del_campo tiene cada hoyo: una de cielo y las demas de suelo, o sea entre tres y cinco TRAMOS jugables por hoyo (80 en total). 0x5E40 los suma para dar con el grupo del hoyo
 F 0x5e54 16
 
 D 0x5f32 0x5f3b tabla_direccion_stick  9 bytes, tabla de conversion de la direccion del joystick (0-8, GTSTCK) usada en 0x5F14
@@ -564,7 +564,25 @@ F 0xbfed 16
 # forma estatica tras varios intentos -documentado como tal, no forzado a
 # una particion falsa-. El mecanismo SI esta entendido; el reparto exacto
 # de estos 396 bytes entre las nueve-y-pico direcciones implicadas, no.
-D 0x4fc9 0x5155 datos_puntuacion  Bloques de datos de puntuacion/recorrido con solape entre si (0x4F40, 0x411A); mecanismo entendido, particion interna sin cerrar
+# LOS DATOS DEL GOLFISTA (0x4FC9-0x5155). No son de puntuacion: son las
+# listas de piezas y las posiciones con las que 0x4F40 arma el golfista. Hay
+# TRES juegos, y el palo en (0xE114) elige cual desde 0x4BF8. La particion
+# ya no es una suposicion: las tres tablas de posicion miden 105, 87 y 66
+# bytes, que a tres bytes por pieza son 35, 29 y 22 piezas, exactamente las
+# que trae cada bloque de sprites. Y las tres listas miden 54, 48 y 36, que
+# son seis fotogramas de 9, 8 y 6 piezas.
+D 0x4fc9 0x4fff listas_golfista_palos_9_y_mas  Las SEIS listas de piezas del swing, nueve por fotograma. Cada byte es el numero de pieza; 0x4F8D lo decrementa y un cero cierra la lista antes de tiempo
+F 0x4fc9 9
+D 0x4fff 0x502f listas_golfista_palo_8  Las seis listas del swing del palo 8, ocho piezas por fotograma
+F 0x4fff 8
+D 0x502f 0x5053 listas_golfista_palos_1_a_7  Las seis listas del swing de los palos 1 a 7, seis piezas por fotograma
+F 0x502f 6
+D 0x5053 0x50bc datos_del_golfista  Las 35 piezas del golfista de palos 9 y mas, TRES bytes cada una: cuanto se sube, cuanto se corre a la izquierda y el color. 0x4F9C y 0x4FA3 los RESTAN de la posicion del golfista; medido contra el emulador, (0xE099)-primero y (0xE098)-segundo salen constantes -144 y 80- en las ocho piezas del cuadro de reposo. El patron del sprite no esta aqui: sale de la cuenta de 0x4FBA, indice*4+0x60
+F 0x5053 3
+D 0x50bc 0x5113 datos_del_golfista_palo_8  Las 29 piezas del golfista del palo 8, tres bytes cada una
+F 0x50bc 3
+D 0x5113 0x5155 datos_del_golfista_palos_1_a_7  Las 22 piezas del golfista de los palos 1 a 7, tres bytes cada una
+F 0x5113 3
 F 0x4fc9 16
 C 0x5afd Indice de hoyo/terreno en (0xE0B4): 0xA875 monta el fondo del campo antes de animar al golfista
 C 0x5b0d Tabla de sprites del golfista en 0x6A2B, indexada por el fotograma acumulado que calcula 0x5E40
@@ -658,7 +676,7 @@ C 0x554b Elige el puntero (0xE09A) o (0xE09C) segun el bit 6 de (0xE000)
 C 0x5809 Avanza el puntero 4 posiciones y repite el bucle exterior
 C 0x5853 Guarda el resultado de 0x46B3 en (0xE116) y restaura registros
 C 0x5b41 Si (0xE0A0) bit 7 esta activo, desplaza el puntero 0x14 posiciones
-C 0x5b50 Segun el bit 7 del byte leido (0x5B61), retrocede o no el puntero
+C 0x5b50 Dibuja la celda; el puntero avanza o retrocede segun el espejo, que es lo que deja A cargado desde 0x5B42
 C 0x5b81 Si la fila se sale de pantalla, marca C y usa el patron de relleno 0xC2
 C 0x5e47 Bucle de suma de tabla_pasos_golfista: acumula en A mientras cuenta en C
 C 0x5f4c Prepara un bucle de 0x11 (17) iteraciones sobre el vector de entrada
@@ -681,7 +699,7 @@ C 0x4797 Guarda HL como puntero fuente en (0xE055); elige patron 0xAB o 0xAD seg
 C 0x47ee Limpia (0xE0C0), marca el bit 6 del byte y prepara un bucle de 50 pasos sobre (0xE12A)
 C 0x48b4 Si el terreno no es el especial (0x0C), registra un bloque de sonido en el canal 2
 C 0x4a2a Elige entre dos tablas (0x4A7E/0x4A8A) segun el bit 6 de (0xE000)
-C 0x4b23 Rellena una columna de VRAM (paso de 4) con el valor de A
+C 0x4b23 Escribe A en la Y de cada uno de los nueve atributos, saltando de cuatro en cuatro
 C 0x4b68 Normaliza el signo de D,E rotando D a la izquierda si desborda
 C 0x4c62 Compara el terreno con B; si lo iguala o supera, satura a 0xFF
 C 0x4d75 Avanza el angulo (0xE092) en 5 unidades, invirtiendolo si se pasa de rango
@@ -693,7 +711,7 @@ C 0x5282 Calcula una posicion de pantalla a partir de (0xE0A6) y la guarda en (0
 C 0x559e Convierte una coordenada de pantalla en fila/columna de caracter (limites 0xB0/0x50)
 C 0x59e1 Lee tipo y valor de un icono de viento de la lista
 C 0x5d66 Prepara un bucle de relleno de 21 valores consecutivos
-C 0x5e21 Lee un byte de la tabla y retrocede el puntero un paso extra si es negativo
+C 0x5e21 Dibuja la celda; el `bit 7,a` de 0x5E26 NO mira el byte leido sino (0xE0A0), que tile_por_indice conserva: con el espejo puesto el inc y los dos dec dejan un retroceso neto
 C 0x5f69 Division/multiplicacion por 2 simultanea, desplazando DE a la derecha y BC a la izquierda
 C 0x600f Calcula la negacion de BC (0-BC) tras la conversion de 0x601B
 C 0x6186 Convierte el tile en direccion (0x6277); si no esta vacio, sigue leyendo
@@ -1232,8 +1250,8 @@ L 0x4AD7 guarda_el_sonido_y_repinta  Deja el parametro de sonido y redibuja el m
 L 0x4AF8 marca_dos_senales  Levanta los bits 2 y 4 y mira el 5
 L 0x4B09 avanza_de_hoyo  Sube (0xE0B4): en el 19 se acaba la ronda, y en el 10 se cambia de recorrido
 L 0x4B19 pide_la_tarea  Deja la tarea pedida en (0xE001)
-L 0x4B1C prepara_la_columna  Nueve celdas desde 0xE0EA con el valor 0xC2
-L 0x4B23 rellena_la_columna  Escribe de dos en dos: una columna entera de la VRAM
+L 0x4B1C esconde_al_golfista  Pone Y=0xC2 -fuera de pantalla- a los NUEVE sprites del golfista, escribiendo de cuatro en cuatro desde 0xE0EA porque cada atributo son cuatro bytes
+L 0x4B23 rellena_la_columna  El bucle: un sprite cada cuatro bytes
 L 0x4B2B cierra_la_ronda  El codigo 0xC0 marca el final de las dieciocho
 L 0x4B2D guarda_el_cierre  Deja el codigo y pone a cero la posicion
 L 0x4B38 cambia_de_recorrido  El codigo 0x80 marca el paso de la ida a la vuelta
@@ -1398,7 +1416,7 @@ L 0x59E1 lee_un_icono_de_viento  Toma tipo y valor de la lista de iconos
 L 0x59E8 coloca_los_iconos  Pone los ocho rumbos del viento en su sitio
 L 0x5A2C pinta_el_golpe  Escribe el marcador de golpe y su separador
 L 0x5A46 recorre_veintiuna_filas  Avanza a la vez el puntero de datos y el destino de VRAM
-L 0x5AFD anima_al_golfista  Monta el fondo y descomprime los dos cuadros del golfista que tocan
+L 0x5AFD monta_la_vista_del_campo  Monta la lista de codigos de tile y descomprime los DOS TROZOS de la vista en perspectiva: el cielo en 0xEA00 y el suelo del tramo en 0xEA69, seguidos
 L 0x5B2D lee_el_nombre_de_la_celda  Trae de la VRAM el patron que hay en esa posicion
 L 0x5B41 pinta_veintiuna_columnas  La fila de la vista en perspectiva; con el bit 7 de (0xE0A0) va espejada
 L 0x5B4D veintiuna  El ancho de la vista
@@ -1406,9 +1424,9 @@ L 0x5B4F pinta_una_celda_de_la_vista  Dibuja la celda y avanza o retrocede el pu
 L 0x5B5A avanza_el_puntero  El caso normal
 L 0x5B5B siguiente_columna  Avanza el destino y sigue
 L 0x5B61 tile_por_indice  El corazon del dibujado: el byte del mapa indexa la lista acumulada de 0xE800 -dos `add hl,bc`, o sea 16 bits- y saca el codigo de tile
-L 0x5B7B nueve_columnas_de_altura  Prepara el recorrido de las nueve columnas de altura
-L 0x5B81 mira_si_cabe  Si la fila se sale de pantalla, marca acarreo y usa el relleno
-L 0x5B8B guarda_la_altura  Deja el valor en la columna y reinicia la animacion si el hoyo es corto
+L 0x5B7B esconde_los_sprites_de_fuera  Recorre los NUEVE sprites del golfista en el buffer de atributos de 0xE0EA -cuatro bytes cada uno- y al que se sale de pantalla le pone Y=0xC2 para esconderlo
+L 0x5B81 mira_si_cabe  Si la Y del sprite mas ocho pasa de 0x98, ya no cabe: cuenta uno en C y la cambia por 0xC2, que es la Y de fuera de pantalla
+L 0x5B8B guarda_la_altura  Deja la Y en el atributo y salta al siguiente sprite, cuatro bytes mas alla
 L 0x5B9B monta_las_tres_franjas  Dibuja el terreno en las tres franjas de la pantalla
 L 0x5BCA franja_superior  Cada paso de la franja de arriba
 
@@ -1442,7 +1460,7 @@ L 0x5E11 plano_una_fila  Una fila del plano; con el espejo puesto, adelanta nuev
 L 0x5E1F diez_columnas  El ancho del plano
 L 0x5E21 plano_una_celda  Dibuja la celda y mueve el puntero en el sentido que toque
 L 0x5E2C plano_siguiente_fila  Avanza diez en los datos y treinta y dos en la pantalla
-L 0x5E40 cuadro_del_golfista  Suma los pasos de tabla_pasos_golfista y devuelve el indice de cuadro acumulado
+L 0x5E40 primer_tramo_del_hoyo  Suma los tramos de los hoyos anteriores y devuelve en C la primera entrada de tabla_vistas_del_campo de este hoyo, y en B cuantas tiene
 L 0x5E47 suma_los_pasos  El bucle de esa suma
 L 0x5E4F devuelve_el_cuadro  Deja el acumulado en C y el paso actual en B
 L 0x5E66 pinta_un_patron  Copia el patron de 8x8 de tabla_patrones_terreno a la VRAM, espejandolo si el bit 7 de (0xE0A0) esta puesto
@@ -1875,9 +1893,9 @@ C 0x4b0d el hoyo 0x12 es el dieciocho: la ronda se acaba
 C 0x4b12 uno mas
 C 0x4b13 y en el diez se pasa de la ida a la vuelta
 C 0x4b17 el bit 7 de la lista de tareas: empieza hoyo
-C 0x4b1e la columna de 0xE0EA
-C 0x4b21 nueve celdas
-C 0x4b24 de cuatro en cuatro: una columna entera
+C 0x4b1e el buffer de atributos del golfista, 0xE0EA
+C 0x4b21 los nueve sprites que lo componen
+C 0x4b24 cuatro bytes por atributo: Y, X, patron y color
 C 0x4b2b 0xC0 es el codigo de ronda terminada
 C 0x4b31 y la posicion vuelve a cero
 C 0x4b34 el bit 2 de la lista de tareas
@@ -2482,7 +2500,7 @@ C 0x5b34 se lee la celda que hay ahi
 C 0x5b45 el bit 7 del terreno
 C 0x5b49 con el puesto, el puntero se corre veinte celdas: la vista sale espejada
 C 0x5b4d veintiuna columnas de ancho
-C 0x5b53 el bit 7 del codigo
+C 0x5b53 el bit 7 de (0xE0A0) OTRA VEZ, no el del byte leido: tile_por_indice conserva A, asi que este es el mismo espejo de 0x5B45
 C 0x5b57 con el puesto, el origen retrocede
 C 0x5b5a y si no, avanza
 C 0x5b5b el destino siempre avanza

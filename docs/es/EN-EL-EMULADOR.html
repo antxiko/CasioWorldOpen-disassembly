@@ -82,7 +82,7 @@ footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
 .galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
 audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 </style>
-<div class="w"><nav class="top"><a href="index.html">Portada</a><a href="EMPEZAR.html">Empezar</a><a href="EL-JUEGO.html">El juego</a><a href="EL-CARTUCHO.html">El cartucho</a><a href="EL-CODIGO.html">El código</a><a href="HALLAZGOS.html">Hallazgos</a><a href="EN-EL-EMULADOR.html" style=color:var(--tinta)>En el emulador</a><a href="PREGUNTAS-ABIERTAS.html">Preguntas abiertas</a><a href="../IN-THE-EMULATOR.html" style="margin-left:auto;color:var(--oro)">English</a></nav>
+<div class="w"><nav class="top"><a href="index.html">Portada</a><a href="EMPEZAR.html">Empezar</a><a href="EL-JUEGO.html">El juego</a><a href="EL-CARTUCHO.html">El cartucho</a><a href="EL-CODIGO.html">El código</a><a href="LA-VISTA-3D.html">La vista 3D</a><a href="HALLAZGOS.html">Hallazgos</a><a href="EN-EL-EMULADOR.html" style=color:var(--tinta)>En el emulador</a><a href="PREGUNTAS-ABIERTAS.html">Preguntas abiertas</a><a href="../IN-THE-EMULATOR.html" style="margin-left:auto;color:var(--oro)">English</a></nav>
 <h1 id="en-el-emulador">En el emulador</h1>
 <p>Las imágenes no son capturas, pero el emulador sí se usa: para comprobarlas, y para preguntarle al juego lo que el listado tarda en decir.</p>
 <h2 id="los-volcados">Los volcados</h2>
@@ -92,6 +92,22 @@ audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 <h2 id="preguntarle-al-juego-quien-dibuja">Preguntarle al juego quién dibuja</h2>
 <p>Cuando el plano del hoyo no aparecía por ninguna parte leyendo el listado, <code>tools/omsx_quien_dibuja.tcl</code> lo resolvió: un punto de ruptura en el dibujante de patrones, anotando la dirección de retorno y los parámetros de cada llamada.</p>
 <p>Las 3.522 llamadas venían de un solo sitio, y subiendo un nivel salieron dos llamantes con sus destinos: uno pintando de la celda 22 a la 607, que es exactamente <b>filas 0 a 18, columnas 22 a 31</b>. El plano. De ahí al listado, y del listado a 0x5DEC.</p>
+<h2 id="congelar-la-maquina-donde-toca">Congelar la máquina donde toca</h2>
+<p>Los buffers de RAM se reutilizan tres veces por cuadro: 0xE800 es la lista acumulada de códigos, pero durante el scroll esa misma zona hace de caché de patrones traídos de la VRAM, y 0xEA00 es a la vez el mapa de la vista y otro buffer de patrones. Volcar la RAM «en un momento cualquiera» no dice nada.</p>
+<p><code>tools/omsx_vista.tcl</code> para la máquina en el instante exacto en que se pinta una fila de la vista y vuelca los dos buffers. Ahí sí:</p>
+<table><tr><th>lo montado en Python</th><th>contra la RAM real</th></tr><tr><td>mapa de la vista, 399 bytes (105+294)</td><td><b>0 distintos</b></td></tr><tr><td>lista común del fondo, 129 códigos</td><td><b>0 distintos</b></td></tr><tr><td>lista propia del hoyo, 59 códigos</td><td><b>0 distintos</b></td></tr></table>
+<p>Y el mismo script anota lo que resuelve <code>tile_por_indice</code> celda por celda: de las <b>399 celdas</b> de la vista del hoyo 1, el índice leído y el código de tile que sale coinciden con los calculados <b>en las 399</b>.</p>
+<h2 id="los-planos-de-hoyo-uno-por-uno">Los planos de hoyo, uno por uno</h2>
+<p><code>tools/omsx_vram_hoyo.tcl</code> fuerza el hoyo que se le pida escribiéndolo en (0xE0B4) con un solo punto de ruptura, y así se comprueban los espejados sin jugarse doce hoyos. En seis hoyos —tres espejados y tres no— las <b>190 celdas</b> del plano salen idénticas, patrón y color:</p>
+<pre><code>hoyo 1  espejo=False   190 celdas, 0 distintas
+hoyo 2  espejo=True    190 celdas, 0 distintas
+hoyo 3  espejo=False   190 celdas, 0 distintas
+hoyo 5  espejo=True    190 celdas, 0 distintas
+hoyo 12 espejo=True    190 celdas, 0 distintas
+hoyo 17 espejo=True    190 celdas, 0 distintas</code></pre>
+<h2 id="el-golfista-leido-de-la-tabla-de-atributos">El golfista, leído de la tabla de atributos</h2>
+<p><code>tools/omsx_quien_sprites.tcl</code> anota los LDIRVM que caen en la tabla de patrones de sprite. Salen dos: 320 bytes a 0x3800 y <b>1120 a 0x3B00</b>, que es el patrón 96 —justo donde empieza el golfista—. Ese segundo bloque coincide byte a byte con 0xB4AE descomprimido.</p>
+<p>Y la tabla de atributos confirma la lectura de las posiciones: con las ocho piezas del cuadro de reposo, (0xE099) menos el primer byte de la tabla da <b>144</b> en las ocho, y (0xE098) menos el segundo da <b>80</b> en las ocho.</p>
 <h2 id="el-contraste-que-decide">El contraste que decide</h2>
 <p>De las 768 celdas de un cuadro de partida real, <b>718 son patrones de <code>tabla_patrones_terreno</code></b>. No es que las imágenes se parezcan: es que salen de la misma tabla, byte a byte.</p>
 <h2 id="por-que-el-titulo-sale-sin-su-texto">Por que el titulo sale sin su texto</h2>

@@ -82,7 +82,7 @@ footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
 .galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
 audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 </style>
-<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html">The code</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html" style=color:var(--tinta)>In the emulator</a><a href="OPEN-QUESTIONS.html">Open questions</a><a href="es/EN-EL-EMULADOR.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
+<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html">The code</a><a href="THE-3D-VIEW.html">The 3D view</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html" style=color:var(--tinta)>In the emulator</a><a href="OPEN-QUESTIONS.html">Open questions</a><a href="es/EN-EL-EMULADOR.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
 <h1 id="in-the-emulator">In the emulator</h1>
 <p>The images are not captures, but the emulator does get used: to check them, and to ask the game what the listing takes longer to say.</p>
 <h2 id="the-dumps">The dumps</h2>
@@ -92,6 +92,22 @@ audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 <h2 id="asking-the-game-who-draws">Asking the game who draws</h2>
 <p>When the hole plan would not turn up anywhere in the listing, <code>tools/omsx_quien_dibuja.tcl</code> settled it: a breakpoint on the pattern drawer, logging the return address and the parameters of every call.</p>
 <p>All 3,522 calls came from one place, and going up a level gave two callers with their destinations: one painting from cell 22 to cell 607, which is exactly <b>rows 0 to 18, columns 22 to 31</b>. The plan. From there back to the listing, and from the listing to 0x5DEC.</p>
+<h2 id="freezing-the-machine-at-the-right-instant">Freezing the machine at the right instant</h2>
+<p>The RAM buffers are reused three times a frame: 0xE800 is the accumulated code list, but during the scroll that same area doubles as a cache of patterns fetched from VRAM, and 0xEA00 is both the view map and yet another pattern buffer. Dumping RAM &quot;at some point&quot; tells you nothing.</p>
+<p><code>tools/omsx_vista.tcl</code> stops the machine at the exact instant a row of the view is being painted and dumps both buffers. There it holds:</p>
+<table><tr><th>assembled in Python</th><th>against real RAM</th></tr><tr><td>view map, 399 bytes (105+294)</td><td><b>0 differing</b></td></tr><tr><td>shared background list, 129 codes</td><td><b>0 differing</b></td></tr><tr><td>the hole&#x27;s own list, 59 codes</td><td><b>0 differing</b></td></tr></table>
+<p>The same script logs what <code>tile_por_indice</code> resolves, cell by cell: across the <b>399 cells</b> of hole 1&#x27;s view, the index read and the tile code it yields match the computed ones <b>in all 399</b>.</p>
+<h2 id="the-hole-plans-one-by-one">The hole plans, one by one</h2>
+<p><code>tools/omsx_vram_hoyo.tcl</code> forces whichever hole you ask for by writing it into (0xE0B4) from a single breakpoint, so the mirrored ones can be checked without playing twelve holes. Across six holes — three mirrored, three not — the plan&#x27;s <b>190 cells</b> come out identical, pattern and colour:</p>
+<pre><code>hole 1  mirrored=False   190 cells, 0 differing
+hole 2  mirrored=True    190 cells, 0 differing
+hole 3  mirrored=False   190 cells, 0 differing
+hole 5  mirrored=True    190 cells, 0 differing
+hole 12 mirrored=True    190 cells, 0 differing
+hole 17 mirrored=True    190 cells, 0 differing</code></pre>
+<h2 id="the-golfer-read-off-the-attribute-table">The golfer, read off the attribute table</h2>
+<p><code>tools/omsx_quien_sprites.tcl</code> logs the LDIRVMs landing in the sprite pattern table. Two show up: 320 bytes to 0x3800 and <b>1120 to 0x3B00</b>, which is pattern 96 — exactly where the golfer starts. That second block matches 0xB4AE decompressed byte for byte.</p>
+<p>And the attribute table confirms how the positions are read: across the eight pieces of the rest pose, (0xE099) minus the table&#x27;s first byte gives <b>144</b> in all eight, and (0xE098) minus the second gives <b>80</b> in all eight.</p>
 <h2 id="the-comparison-that-decides">The comparison that decides</h2>
 <p>Of the 768 cells of a real in-game frame, <b>718 are patterns from <code>tabla_patrones_terreno</code></b>. It is not that the pictures look alike: they come out of the same table, byte for byte.</p>
 <h2 id="why-the-title-comes-out-without-its-text">Why the title comes out without its text</h2>

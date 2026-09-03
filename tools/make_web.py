@@ -58,6 +58,7 @@ TXT = {
         docnav=[("EMPEZAR.html", "Empezar"), ("EL-JUEGO.html", "El juego"),
                 ("EL-CARTUCHO.html", "El cartucho"),
                 ("EL-CODIGO.html", "El código"),
+                ("LA-VISTA-3D.html", "La vista 3D"),
                 ("HALLAZGOS.html", "Hallazgos"),
                 ("EN-EL-EMULADOR.html", "En el emulador"),
                 ("PREGUNTAS-ABIERTAS.html", "Preguntas abiertas")],
@@ -101,6 +102,7 @@ TXT = {
                 ("THE-GAME.html", "The game"),
                 ("THE-CARTRIDGE.html", "The cartridge"),
                 ("THE-CODE.html", "The code"),
+                ("THE-3D-VIEW.html", "The 3D view"),
                 ("FINDINGS.html", "Findings"),
                 ("IN-THE-EMULATOR.html", "In the emulator"),
                 ("OPEN-QUESTIONS.html", "Open questions")],
@@ -133,6 +135,29 @@ HALLAZGOS = {
          "los datos hacia atrás</b>, y 0x5E7C le da la vuelta al patrón bit a "
          "bit con <code>rlc</code> y <code>rra</code>. En las ocho parejas, sin "
          "una excepción, uno lleva el bit y el otro no.</p>"),
+        ("La perspectiva no se calcula: viene dibujada, tramo a tramo",
+         "<p>La vista del campo parece 3D y no hay una sola cuenta de "
+         "proyección detrás. La tabla de 0x6A2B guarda <b>ochenta mapas</b> de "
+         "21×19 celdas, entre cuatro y seis por hoyo, y avanzar por el hoyo es "
+         "cambiar de mapa: (0xE0B5) dice en qué tramo está la bola.</p>"
+         "<p>Cada mapa se monta en dos trozos que quedan pegados en RAM: "
+         "<b>105 bytes</b> de cielo, iguales para todo el hoyo, y <b>294</b> "
+         "de suelo del tramo. Son 21×5 y 21×14, y 0xEA00+105 da exactamente "
+         "0xEA69, que es donde el código descomprime el segundo. Y acercarse "
+         "no es un zoom: es pintar <b>una fila nueva de veintiuna celdas</b> "
+         "e ir moviendo el puntero de veintiuno en veintiuno.</p>"),
+        ("El golfista son nueve sprites encajados, y hay tres",
+         "<p>En el cartucho no hay ningún dibujo de un golfista: hay "
+         "<b>piezas</b>. Cada postura la compone 0x4F8A con hasta <b>nueve "
+         "sprites de 16×16 superpuestos</b>, cada uno de un color —la única "
+         "manera de sacar una figura multicolor en un MSX1—, leyendo una "
+         "lista de piezas y una tabla de tres bytes: cuánto sube, cuánto se "
+         "corre y de qué color. El número de patrón ni siquiera está "
+         "guardado: sale de <code>índice×4 + 0x60</code>.</p>"
+         "<p>Y hay <b>tres golfistas</b>, que elige el palo: de 22, 29 y 35 "
+         "piezas, con seis fotogramas de swing cada uno. Crece con el palo "
+         "porque crece la cámara. El listado los tenía llamados «planos de "
+         "hoyo 15, 16 y 17».</p>"),
         ("Lo que se comprime no son dibujos, son diferencias entre tiles",
          "<p>0xA8CB no descomprime una imagen. Descomprime, <b>separa cada "
          "byte con un cero</b> —convirtiendo la tira en valores de dieciséis "
@@ -185,6 +210,30 @@ HALLAZGOS = {
          "<code>rlc</code> and <code>rra</code>. Across all eight pairs, "
          "without one exception, one carries the bit and the other does "
          "not.</p>"),
+        ("The perspective is never computed: it comes pre-drawn, stretch by stretch",
+         "<p>The view of the course looks 3D and there is not one projection "
+         "calculation behind it. The table at 0x6A2B holds <b>eighty maps</b> "
+         "of 21×19 cells, four to six per hole, and moving up the hole means "
+         "switching map: (0xE0B5) says which stretch the ball is in.</p>"
+         "<p>Each map is assembled from two pieces that end up flush in RAM: "
+         "<b>105 bytes</b> of sky, shared by the whole hole, and <b>294</b> of "
+         "the stretch's ground. That is 21×5 and 21×14, and 0xEA00+105 lands "
+         "exactly on 0xEA69, where the code decompresses the second. And "
+         "getting closer is no zoom: it is painting <b>one fresh row of "
+         "twenty-one cells</b> and stepping the pointer twenty-one at a "
+         "time.</p>"),
+        ("The golfer is nine interlocking sprites, and there are three of him",
+         "<p>There is no drawing of a golfer in the cartridge: there are "
+         "<b>pieces</b>. 0x4F8A composes every pose from up to <b>nine "
+         "overlapping 16×16 sprites</b>, each in its own colour — the only "
+         "way to get a multi-coloured figure on an MSX1 — reading a list of "
+         "pieces and a three-byte table: how far up, how far across, what "
+         "colour. The pattern number is not even stored: it falls out of "
+         "<code>index×4 + 0x60</code>.</p>"
+         "<p>And there are <b>three golfers</b>, chosen by the club: 22, 29 "
+         "and 35 pieces, six swing frames each. He grows with the club because "
+         "the camera does. The listing had them filed as “hole plans 15, 16 "
+         "and 17”.</p>"),
         ("What gets compressed are not pictures, they are differences between tiles",
          "<p>0xA8CB does not decompress an image. It decompresses, <b>puts a "
          "zero after every byte</b> — turning the run into sixteen-bit values "
@@ -249,12 +298,46 @@ GALERIA = [
      "laid out in two blocks of the name table; against the emulator's VRAM "
      "they come out <b>identical, byte for byte</b>"),
     ("sprites.png",
-     "Los diez sprites de 16×16, los únicos del cartucho: 0x60A2 los "
-     "descomprime y los copia a VRAM 0x3800. Cinco de ellos son la bola a "
-     "cinco tamaños, que es como se ve alejarse",
-     "The ten 16×16 sprites, the only ones in the cartridge: 0x60A2 "
-     "decompresses them and copies them to VRAM 0x3800. Five of them are the "
-     "ball at five sizes, which is how you watch it fly away"),
+     "Los diez sprites de 16×16 que 0x60A2 descomprime y copia a VRAM 0x3800. "
+     "Cinco de ellos son la bola a cinco tamaños, que es como se ve alejarse. "
+     "No son los únicos del cartucho: detrás, en 0x3B00, van las piezas del "
+     "golfista",
+     "The ten 16×16 sprites 0x60A2 decompresses and copies to VRAM 0x3800. "
+     "Five of them are the ball at five sizes, which is how you watch it fly "
+     "away. They are not the cartridge's only ones: the golfer's pieces go "
+     "right behind them, at 0x3B00"),
+    ("golfista.png",
+     "<b>Los tres golfistas</b>, con sus seis fotogramas de swing. No hay "
+     "ningún dibujo del golfista en el cartucho: cada postura son hasta "
+     "<b>nueve sprites de 16×16 superpuestos</b>, cada uno de su color, que "
+     "0x4F8A coloca leyendo una lista de piezas y una tabla de tres bytes. El "
+     "palo elige cuál de los tres, y por eso cambia de tamaño: es la distancia "
+     "a la que está la cámara",
+     "<b>The three golfers</b>, with their six swing frames each. There is no "
+     "picture of a golfer anywhere in the cartridge: every pose is up to "
+     "<b>nine overlapping 16×16 sprites</b>, each in its own colour, placed by "
+     "0x4F8A from a list of pieces and a three-byte table. The club picks "
+     "which of the three, which is why the size changes: that is how far away "
+     "the camera is"),
+    ("salidas.png",
+     "<b>Los dieciocho hoyos vistos desde el tee</b>, con sus dos marcas "
+     "blancas en primer plano. Cada uno es el primer tramo de su hoyo, "
+     "resuelto celda a celda como lo hace el cartucho: el mapa de índices "
+     "contra la lista de códigos acumulada, y de ahí a los patrones de 8×8",
+     "<b>The eighteen holes seen from the tee</b>, their two white markers in "
+     "the foreground. Each is its hole's first stretch, resolved cell by cell "
+     "the way the cartridge does it: the index map against the accumulated "
+     "code list, and from there to the 8×8 patterns"),
+    ("vistas_hoyo01.png",
+     "<b>Los cinco tramos del hoyo 1</b>, del tee al green, dibujados desde la "
+     "ROM. Cada uno es un mapa de 19×21 índices que se monta en dos trozos: "
+     "las cinco filas de cielo, comunes al hoyo, y las catorce de suelo del "
+     "tramo. La perspectiva no se calcula en ninguna parte: <b>viene "
+     "dibujada</b>",
+     "<b>The five stretches of hole 1</b>, tee to green, drawn from the ROM. "
+     "Each is a 19×21 map of indices assembled from two pieces: the five sky "
+     "rows, shared by the whole hole, and the stretch's fourteen ground rows. "
+     "The perspective is never computed anywhere: <b>it comes pre-drawn</b>"),
     ("tiles.png",
      "Los 570 patrones de 8×8 de 0x8B5E, sin comprimir, con los que se dibuja "
      "todo lo que no es un sprite. Que son de verdad los del juego no es una "

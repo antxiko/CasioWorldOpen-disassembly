@@ -36,8 +36,8 @@ asi que sobreviven a un retrazado. Lo que hay en el `.notes`:
 | | |
 |---|---|
 | etiquetas con nombre | 435 |
-| comentarios anclados | 1487 |
-| rangos de datos con explicación | 153 |
+| comentarios anclados | 1.487 |
+| rangos de datos con explicación | 158 |
 
 Y las imagenes de la web no son capturas: las pinta Python ejecutando la misma
 cadena que corre el Z80, y estan comprobadas contra la VRAM de openMSX — los

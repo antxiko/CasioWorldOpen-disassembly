@@ -1,0 +1,114 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The perspective view — Casio World Open (Casio, 1985)</title>
+<style>
+:root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
+  --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+@media (prefers-color-scheme:light){:root{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;
+  --panel:#f7f6f2;--linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}}
+:root[data-theme="dark"]{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;
+  --linea:#23262e;--rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+:root[data-theme="light"]{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;--panel:#f7f6f2;
+  --linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);padding:0 1.25rem 6rem;
+  font:15px/1.7 ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.w{max-width:1120px;margin:0 auto}
+.n{max-width:68ch}
+h1,h2,h3,h4{font-weight:400;text-wrap:balance}
+a{color:var(--cyan)}
+img{image-rendering:pixelated;max-width:100%;height:auto;display:block}
+header.top{display:flex;flex-direction:column;align-items:center;gap:1.5rem;
+  padding:4rem 0 2rem;text-align:center}
+header.top img{width:min(100%,642px)}
+.claim{max-width:60ch;color:var(--suave);font-size:1.05rem}
+.claim b{color:var(--tinta);font-weight:400}
+.ficha{display:flex;flex-wrap:wrap;justify-content:center;gap:0 1.5rem;width:100%;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--suave);
+  border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);padding:.85rem 0}
+.ficha b{color:var(--rojo);font-weight:400}
+nav{display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:center;padding:1.25rem 0;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+nav a{color:var(--suave);text-decoration:none;border-bottom:1px solid transparent}
+nav a:hover,nav a:focus{color:var(--tinta);border-bottom-color:var(--rojo)}
+nav.docs{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);
+  margin-bottom:1rem}
+section{margin-top:4.5rem;scroll-margin-top:1rem}
+section>h2{font-size:1rem;letter-spacing:.1em;text-transform:uppercase;
+  border-left:3px solid var(--rojo);padding-left:.9rem;margin:0 0 1.5rem}
+.cifras{display:grid;gap:1px;background:var(--linea);border:1px solid var(--linea);
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.cifra{background:var(--panel);padding:1.1rem}
+.cifra b{display:block;font-size:1.7rem;color:var(--oro);font-weight:400;
+  font-variant-numeric:tabular-nums;line-height:1.2}
+.cifra span{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--suave)}
+.hall{border-top:1px solid var(--linea);padding-top:1.75rem;margin-top:2.5rem}
+.hall:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.hall h3{margin:0 0 .75rem;font-size:1.15rem;color:var(--rojo)}
+.hall h4{color:var(--oro);margin:1.5rem 0 .5rem;font-size:.95rem}
+.hall p{margin:0 0 1rem}
+pre.asm{background:var(--panel);border-left:2px solid var(--verde);margin:1.25rem 0;
+  padding:1rem 1.1rem;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--tinta)}
+.par{display:grid;gap:1.25rem;grid-template-columns:1fr}
+@media(min-width:820px){.par{grid-template-columns:1fr 1fr}}
+.par figure{margin:0}
+table{border-collapse:collapse;width:100%;margin:1.25rem 0;font-size:13px;display:block;
+  overflow-x:auto}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--linea)}
+th{color:var(--suave);font-weight:400;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+td.num{font-variant-numeric:tabular-nums;color:var(--oro)}
+.nivel{margin-top:2rem}
+.nivel h3{margin:0 0 .9rem;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase}
+.nivel em{color:var(--cyan);font-style:normal}
+.sep{color:var(--suave);margin:0 .6rem}
+.rejilla{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.rejilla figure{margin:0;background:var(--panel);box-shadow:0 0 0 1px var(--linea)}
+.rejilla figcaption{display:flex;justify-content:space-between;padding:.45rem .65rem;
+  font-size:11px;color:var(--suave);border-top:1px solid var(--linea)}
+.dir{font-variant-numeric:tabular-nums;color:var(--verde)}
+footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
+  color:var(--suave);font-size:12px}
+
+/* Aviso de trabajo en curso: tiene que verse antes que las cifras, porque un
+   100% mal leido hace mas dano que no ponerlo. */
+.aviso{background:#3a2a10;border-left:3px solid var(--oro);margin:1.5rem auto;
+  padding:1rem 1.2rem;max-width:900px;border-radius:4px}
+.aviso p{margin:0;color:var(--tinta);font-size:15px;line-height:1.65}
+.galeria{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:1.5rem;margin:1.5rem 0}
+.galeria figure{margin:0}
+.galeria img{width:100%;height:auto;image-rendering:pixelated;
+  border:1px solid var(--linea);border-radius:3px}
+.galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
+audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
+</style>
+<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html">The code</a><a href="THE-3D-VIEW.html" style=color:var(--tinta)>The 3D view</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html">In the emulator</a><a href="OPEN-QUESTIONS.html">Open questions</a><a href="es/LA-VISTA-3D.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
+<h1 id="the-perspective-view">The perspective view</h1>
+<p>It is the best thing in the cartridge, and the first thing to say is what it is <b>not</b>: the view of the course is never computed. There is no projection, no trigonometry, not one <code>call</code> into the tables the game uses for ball physics. The perspective <b>comes pre-drawn</b> in the ROM, hole by hole and stretch by stretch, and all the Z80 does is resolve two indirections and copy 8×8 patterns.</p>
+<p>What follows is checked against the emulator&#x27;s RAM and VRAM, not inferred: <code>tools/omsx_vista.tcl</code> freezes the machine at the exact instant a row is being painted and dumps both buffers.</p>
+<h2 id="the-eighty-maps">The eighty maps</h2>
+<p>The table at 0x6A2B holds ninety-eight pointers in eighteen groups, one per hole; <code>tabla_tramos_por_hoyo</code> (0x5E54) says how many fall in each group, between four and six. The first of each group is <b>105 bytes</b> and the rest are <b>294</b>.</p>
+<p>Those numbers tell the whole story: 105 is 21×5 and 294 is 21×14. The view is <b>twenty-one columns</b> wide, and it is assembled from two pieces:</p>
+<table><tr><th>piece</th><th>size</th><th>what it is</th></tr><tr><td>first of the group</td><td>21×5</td><td>sky and horizon, the same for the whole hole</td></tr><tr><td>one per stretch</td><td>21×14</td><td>the ground, different in each stretch</td></tr></table>
+<p><code>0x5B17</code> decompresses the first into 0xEA00 and <code>0x5B27</code> the second into <b>0xEA69</b>, which is exactly 0xEA00+105. And 0xEA69+294 lands on 0xEB8F, which is precisely where <code>0x56B7</code> leaves the scroll pointer. The two pieces end up <b>butted together</b>: 399 consecutive bytes, nineteen rows of twenty-one columns.</p>
+<p>Once repeats are removed, the eighteen holes spend <b>eighty ground maps</b>. That is the entire course.</p>
+<h2 id="three-hops-to-paint-one-cell">Three hops to paint one cell</h2>
+<p>None of those 399 bytes is a picture. Each one is an <b>index</b>, and it takes three hops to reach a pixel:</p>
+<ol><li><b>The index</b> goes into a list of sixteen-bit tile codes living at 0xE800. <code>0x5B61</code> walks it with <code>add hl,bc</code> twice, which is two-byte indexing.</li><li><b>That list</b> is not stored as such: <code>0xA8CB</code> builds it when the hole starts, by decompressing two blocks and taking the <b>running sum</b> of their bytes. What the cartridge stores are differences.</li><li><b>The code</b> that comes out indexes <code>tabla_patrones_terreno</code> (0x8B5E), 570 uncompressed 8×8 patterns — and the colour arrives by a different road entirely: the chain of blocks at 0x9D2E, which <code>0x5EA5</code> walks header by header.</li></ol>
+<p>The 0xE800 list is built in <b>two consecutive passes</b>: first the codes shared by every hole — 129 or 154, depending which — and the hole&#x27;s own behind them. That they sit flush is not a guess: the destination addresses the code writes by hand, 0xE902 and 0xE934, are exactly 0xE800 plus the size of the first one. Against the emulator&#x27;s RAM both come out <b>without a single differing byte</b>.</p>
+<h2 id="getting-closer-is-a-name-table-scroll">Getting closer is a name-table scroll</h2>
+<p>There is no zoom. What sells the forward motion is that <code>0x5D3C</code> paints <b>one fresh row of twenty-one cells</b> at a time, while the pointer at 0xE0AE steps through the map twenty-one at a time: backwards as you approach (<code>0x5C3A</code> adds −21 to it) and forwards as you retreat. The rest of the screen shifts by copying name-table strips from one part of VRAM to another.</p>
+<p>And the ball picks the stretch: (0xE0B5) — the high byte of (0xE0B4) — is which zone of the hole you are in, and it is what chooses which of the four to six ground maps applies. That is why a hole is seen in chunks rather than all at once.</p>
+<h2 id="the-golfer-does-not-exist">The golfer does not exist</h2>
+<p>There is no drawing of a golfer anywhere in the cartridge. What there is are <b>pieces</b>, and every pose is composed on the spot from up to <b>nine overlapping 16×16 sprites</b>, each in its own colour — the only way to get a multi-coloured figure out of an MSX1.</p>
+<p><code>0x4F8A</code> is the loop that places them. It reads a list of piece numbers and, for each one, goes to a <b>three-byte</b> table: how far up, how far left, and what colour. The pattern number is stored nowhere — it falls out of a calculation, <code>index×4 + 0x60</code>, at <code>0x4FBA</code> — and a zero closes the list early.</p>
+<p>That this reading is the right one shows up in the subtraction: across the eight pieces of the rest pose, (0xE099) minus the first byte gives <b>144</b> in all eight, and (0xE098) minus the second gives <b>80</b> in all eight. And the third byte matches the attribute&#x27;s colour piece for piece.</p>
+<h2 id="and-there-are-three-golfers-not-one">And there are three golfers, not one</h2>
+<p><code>0x4BF8</code> looks at the club in (0xE114) and picks one of three complete sets:</p>
+<table><tr><th>clubs</th><th>pieces</th><th>per frame</th><th>size</th></tr><tr><td>1 to 7</td><td>22</td><td>6</td><td>32×48</td></tr><tr><td>the 8</td><td>29</td><td>8</td><td>45×56</td></tr><tr><td>9 and up</td><td>35</td><td>9</td><td>52×64</td></tr></table>
+<p>All three have <b>six swing frames</b>. And the split needs no guessing: the three position tables measure 105, 87 and 66 bytes, which at three bytes per piece is 35, 29 and 22 — exactly what each sprite block carries — and the three lists measure 54, 48 and 36, which is six frames of nine, eight and six.</p>
+<p>The golfer grows with the club because <b>the camera grows</b>: with a short iron you stand over the ball, with a wood you stand back. It is the same idea as the view, solved the same way: instead of scaling anything, there are three drawings.</p>
+<h2 id="what-it-took-to-see-it">What it took to see it</h2>
+<p>The published listing called the eighty maps &quot;golfer frames&quot; and the three piece blocks &quot;hole plans 15, 16 and 17&quot;. They were the wrong way round: what looked like the golfer was the course, and the three blocks nobody could place turned out to be the golfer.</p>
+<p>Two numbers gave it away. That 0xEA69 minus 0xEA00 came to 105, and that 105 and 294 are both multiples of 21, suggested the width was 21 and not a sprite; and that the pattern came out of <code>index×4 + 0x60</code> explained in one go the patterns 96, 100, 104… that the emulator&#x27;s attribute table had loaded.</p>
+<footer><p><em>Casio World Open</em> was published by Casio for the MSX in 1985, in a 16 KB cartridge. All rights in the game remain with their holders. This is preservation, study and documentation work, and the cartridge image is not distributed.</p></footer></div>

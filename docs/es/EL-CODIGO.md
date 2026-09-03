@@ -13,7 +13,7 @@ códigos de tile.
 
 ## Y encima, indirección
 
-Los planos de hoyo, las vistas de terreno y los cuadros del golfista guardan
+Los planos de hoyo y los ochenta mapas de la vista en perspectiva guardan
 **índices** dentro de esa lista, un byte por celda. `0x5B61` los resuelve: entra
 en la lista con `add hl,bc` dos veces —indexado de dieciséis bits, porque la
 tabla de patrones tiene 570 entradas— y pasa el código a `0x5E66`, que copia el

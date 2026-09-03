@@ -1,5 +1,5 @@
 ; ==========================================================================
-; CASIO WORLD OPEN - Casio - MSX1 - cartucho de 32 KB en las paginas 1 y 2
+; Casio World Open (Casio, 1985)
 ; ==========================================================================
 ; Generado por tools/mkasm.py a partir del trazado de flujo real.
 ; Los comentarios provienen de tools/../src/*.notes y estan anclados a
@@ -42,7 +42,7 @@ init:		; Punto de entrada que llama la BIOS tras la cabecera AB
 	call 0004dh		;4031   ; BIOS WRTVRM - Writes data in VRAM
 	ld a,0c2h		;4034   ; 0xC2 es un jp nz: parchea la rutina de RAM de 0xE10E
 	ld (0e10eh),a		;4036
-	call prepara_la_columna		;4039   ; monta las columnas del campo
+	call esconde_al_golfista		;4039   ; monta las columnas del campo
 	call monta_la_pantalla_de_titulo		;403c   ; la pantalla de titulo, con su logotipo
 	ld a,(0e000h)		;403f   ; y la marca de la opcion elegida, que 0x419B deja en 0xC0
 	call pinta_la_marca_de_jugadores		;4042
@@ -1287,13 +1287,13 @@ avanza_de_hoyo:		; Sube (0xE0B4): en el 19 se acaba la ronda, y en el 10 se camb
 	ld a,080h		;4b17   ; el bit 7 de la lista de tareas: empieza hoyo
 pide_la_tarea:		; Deja la tarea pedida en (0xE001)
 	ld (0e001h),a		;4b19
-prepara_la_columna:		; Nueve celdas desde 0xE0EA con el valor 0xC2
+esconde_al_golfista:		; Pone Y=0xC2 -fuera de pantalla- a los NUEVE sprites del golfista, escribiendo de cuatro en cuatro desde 0xE0EA porque cada atributo son cuatro bytes
 	ld a,0c2h		;4b1c
-	ld hl,0e0eah		;4b1e   ; la columna de 0xE0EA
-	ld b,009h		;4b21   ; nueve celdas
-rellena_la_columna:		; Escribe de dos en dos: una columna entera de la VRAM
-	ld (hl),a			;4b23   ; Rellena una columna de VRAM (paso de 4) con el valor de A
-	inc hl			;4b24   ; de cuatro en cuatro: una columna entera
+	ld hl,0e0eah		;4b1e   ; el buffer de atributos del golfista, 0xE0EA
+	ld b,009h		;4b21   ; los nueve sprites que lo componen
+rellena_la_columna:		; El bucle: un sprite cada cuatro bytes
+	ld (hl),a			;4b23   ; Escribe A en la Y de cada uno de los nueve atributos, saltando de cuatro en cuatro
+	inc hl			;4b24   ; cuatro bytes por atributo: Y, X, patron y color
 	inc hl			;4b25
 	inc hl			;4b26
 	inc hl			;4b27
@@ -1896,7 +1896,7 @@ guarda_el_estado_y_repinta:		; Deja el nuevo estado en (0xE06E) y decide si redi
 	push af			;4f31
 	call z,valores_a_cero		;4f32   ; pone los valores a cero
 	call nz,valores_por_defecto		;4f35   ; y cualquier otro, a sus valores por defecto
-	call prepara_la_columna		;4f38   ; y rellena la columna del indicador
+	call esconde_al_golfista		;4f38   ; y rellena la columna del indicador
 	ld a,(0e097h)		;4f3b
 	cp 008h		;4f3e   ; Elige el bloque de datos de puntuacion segun (0xE097)
 	ld bc,00808h		;4f40
@@ -1989,36 +1989,147 @@ fin_de_la_lista:		; Recupera el puntero y sale
 	ret			;4fc8
 
 ; ----------------------------------------------------------------------
-; DATOS datos_puntuacion: Bloques de datos de puntuacion/recorrido con solape
-;   entre si (0x4F40, 0x411A); mecanismo entendido, particion interna sin
-;   cerrar
-;   0x4fc9..0x5155  (396 bytes)
-DATA_datos_puntuacion:
+; DATOS listas_golfista_palos_9_y_mas: Las SEIS listas de piezas del swing,
+;   nueve por fotograma. Cada byte es el numero de pieza; 0x4F8D lo decrementa
+;   y un cero cierra la lista antes de tiempo
+;   0x4fc9..0x4fff  (54 bytes)
+DATA_listas_golfista_palos_9_y_mas:
 	defb 001h,002h,003h,004h,005h,006h,007h,008h,000h,001h,002h,009h,00ah,00bh,006h,007h	; 4fc9  ................
 	defb 00ch,000h,00dh,002h,011h,010h,00eh,012h,014h,013h,00fh,001h,002h,003h,004h,005h	; 4fd9  ................
 	defb 015h,016h,008h,017h,001h,002h,018h,01bh,019h,015h,016h,01ah,017h,01eh,01fh,020h	; 4fe9  ............... 
-	defb 021h,01dh,015h,016h,01ch,017h,001h,002h,003h,004h,005h,006h,007h,008h,009h,00ah	; 4ff9  !...............
-	defb 00bh,00ch,00dh,00eh,00fh,000h,010h,011h,012h,00eh,00fh,000h,000h,000h,001h,002h	; 5009  ................
-	defb 003h,004h,005h,013h,014h,008h,001h,002h,015h,016h,017h,013h,014h,000h,018h,019h	; 5019  ................
-	defb 01ah,01bh,013h,014h,000h,000h,001h,002h,003h,004h,005h,006h,001h,008h,009h,004h	; 5029  ................
-	defb 005h,007h,00ah,00ch,00dh,00eh,00bh,000h,001h,002h,003h,00fh,010h,006h,012h,013h	; 5039  ................
-	defb 00fh,010h,011h,000h,014h,015h,00fh,010h,016h,000h,031h,015h,001h,02ch,010h,00ah	; 5049  ..........1..,..
-	defb 028h,00dh,00fh,021h,01dh,00fh,018h,011h,00ah,011h,01dh,008h,001h,01bh,00fh,00ch	; 5059  (..!............
-	defb 007h,001h,025h,00dh,00fh,021h,01dh,00fh,01ch,01ch,00ah,016h,02bh,001h,030h,015h	; 5069  ..%..!......+.0.
-	defb 001h,02ch,01ch,00ah,02ch,019h,00fh,01ch,01dh,00fh,01ch,00dh,00fh,010h,01dh,008h	; 5079  .,..,...........
-	defb 00ch,00dh,008h,002h,01bh,00fh,011h,01dh,008h,005h,019h,00fh,001h,018h,008h,027h	; 5089  ...............'
-	defb 00dh,00fh,01dh,00dh,00ah,015h,008h,001h,021h,01dh,00fh,031h,021h,00fh,031h,01dh	; 5099  ........!..1!.1.
-	defb 00ah,02dh,014h,001h,021h,00dh,00ah,01dh,00dh,00fh,021h,01dh,00fh,00ch,007h,001h	; 50a9  .-..!.....!.....
-	defb 00ch,007h,001h,027h,00ch,001h,027h,00ch,00fh,027h,00ch,00ah,017h,013h,00fh,017h	; 50b9  ...'..'..'......
-	defb 008h,00ah,010h,016h,008h,000h,015h,00fh,007h,003h,001h,028h,009h,001h,025h,010h	; 50c9  ...........(..%.
-	defb 00ah,01bh,013h,00fh,015h,012h,00ah,012h,01eh,001h,00bh,013h,008h,001h,015h,00fh	; 50d9  ................
-	defb 028h,00ch,001h,023h,011h,00ah,01bh,013h,00fh,00bh,015h,008h,003h,015h,00fh,01eh	; 50e9  (..#............
-	defb 00ch,00ah,018h,013h,00fh,013h,001h,001h,028h,014h,00ah,025h,00ch,001h,018h,002h	; 50f9  ........(..%....
-	defb 00ah,01bh,013h,00fh,007h,003h,001h,007h,003h,001h,020h,00eh,001h,014h,00eh,00ah	; 5109  .......... .....
-	defb 004h,00eh,001h,007h,00eh,008h,000h,00eh,00fh,017h,00eh,00fh,017h,00eh,00fh,018h	; 5119  ................
-	defb 00eh,00ah,010h,01eh,001h,019h,00eh,001h,017h,00eh,00fh,017h,00eh,00ah,007h,00eh	; 5129  ................
-	defb 008h,007h,00eh,00fh,007h,00eh,008h,001h,00eh,00fh,017h,00eh,00fh,017h,00eh,001h	; 5139  ................
-	defb 017h,00eh,00ah,01fh,00eh,001h,017h,00eh,00fh,017h,00eh,00ah	; 5149  ............
+	defb 021h,01dh,015h,016h,01ch,017h	; 4ff9
+
+; ----------------------------------------------------------------------
+; DATOS listas_golfista_palo_8: Las seis listas del swing del palo 8, ocho
+;   piezas por fotograma
+;   0x4fff..0x502f  (48 bytes)
+DATA_listas_golfista_palo_8:
+	defb 001h,002h,003h,004h,005h,006h,007h,008h	; 4fff  ........
+	defb 009h,00ah,00bh,00ch,00dh,00eh,00fh,000h	; 5007  ........
+	defb 010h,011h,012h,00eh,00fh,000h,000h,000h	; 500f  ........
+	defb 001h,002h,003h,004h,005h,013h,014h,008h	; 5017  ........
+	defb 001h,002h,015h,016h,017h,013h,014h,000h	; 501f  ........
+	defb 018h,019h,01ah,01bh,013h,014h,000h,000h	; 5027  ........
+
+; ----------------------------------------------------------------------
+; DATOS listas_golfista_palos_1_a_7: Las seis listas del swing de los palos 1
+;   a 7, seis piezas por fotograma
+;   0x502f..0x5053  (36 bytes)
+DATA_listas_golfista_palos_1_a_7:
+	defb 001h,002h,003h,004h,005h,006h	; 502f
+	defb 001h,008h,009h,004h,005h,007h	; 5035
+	defb 00ah,00ch,00dh,00eh,00bh,000h	; 503b
+	defb 001h,002h,003h,00fh,010h,006h	; 5041
+	defb 012h,013h,00fh,010h,011h,000h	; 5047
+	defb 014h,015h,00fh,010h,016h,000h	; 504d
+
+; ----------------------------------------------------------------------
+; DATOS datos_del_golfista: Las 35 piezas del golfista de palos 9 y mas, TRES
+;   bytes cada una: cuanto se sube, cuanto se corre a la izquierda y el color.
+;   0x4F9C y 0x4FA3 los RESTAN de la posicion del golfista; medido contra el
+;   emulador, (0xE099)-primero y (0xE098)-segundo salen constantes -144 y 80-
+;   en las ocho piezas del cuadro de reposo. El patron del sprite no esta
+;   aqui: sale de la cuenta de 0x4FBA, indice*4+0x60
+;   0x5053..0x50bc  (105 bytes)
+DATA_datos_del_golfista:
+	defb 031h,015h,001h	; 5053
+	defb 02ch,010h,00ah	; 5056
+	defb 028h,00dh,00fh	; 5059
+	defb 021h,01dh,00fh	; 505c
+	defb 018h,011h,00ah	; 505f
+	defb 011h,01dh,008h	; 5062
+	defb 001h,01bh,00fh	; 5065
+	defb 00ch,007h,001h	; 5068
+	defb 025h,00dh,00fh	; 506b
+	defb 021h,01dh,00fh	; 506e
+	defb 01ch,01ch,00ah	; 5071
+	defb 016h,02bh,001h	; 5074
+	defb 030h,015h,001h	; 5077
+	defb 02ch,01ch,00ah	; 507a
+	defb 02ch,019h,00fh	; 507d
+	defb 01ch,01dh,00fh	; 5080
+	defb 01ch,00dh,00fh	; 5083
+	defb 010h,01dh,008h	; 5086
+	defb 00ch,00dh,008h	; 5089
+	defb 002h,01bh,00fh	; 508c
+	defb 011h,01dh,008h	; 508f
+	defb 005h,019h,00fh	; 5092
+	defb 001h,018h,008h	; 5095
+	defb 027h,00dh,00fh	; 5098
+	defb 01dh,00dh,00ah	; 509b
+	defb 015h,008h,001h	; 509e
+	defb 021h,01dh,00fh	; 50a1
+	defb 031h,021h,00fh	; 50a4
+	defb 031h,01dh,00ah	; 50a7
+	defb 02dh,014h,001h	; 50aa
+	defb 021h,00dh,00ah	; 50ad
+	defb 01dh,00dh,00fh	; 50b0
+	defb 021h,01dh,00fh	; 50b3
+	defb 00ch,007h,001h	; 50b6
+	defb 00ch,007h,001h	; 50b9
+
+; ----------------------------------------------------------------------
+; DATOS datos_del_golfista_palo_8: Las 29 piezas del golfista del palo 8, tres
+;   bytes cada una
+;   0x50bc..0x5113  (87 bytes)
+DATA_datos_del_golfista_palo_8:
+	defb 027h,00ch,001h	; 50bc
+	defb 027h,00ch,00fh	; 50bf
+	defb 027h,00ch,00ah	; 50c2
+	defb 017h,013h,00fh	; 50c5
+	defb 017h,008h,00ah	; 50c8
+	defb 010h,016h,008h	; 50cb
+	defb 000h,015h,00fh	; 50ce
+	defb 007h,003h,001h	; 50d1
+	defb 028h,009h,001h	; 50d4
+	defb 025h,010h,00ah	; 50d7
+	defb 01bh,013h,00fh	; 50da
+	defb 015h,012h,00ah	; 50dd
+	defb 012h,01eh,001h	; 50e0
+	defb 00bh,013h,008h	; 50e3
+	defb 001h,015h,00fh	; 50e6
+	defb 028h,00ch,001h	; 50e9
+	defb 023h,011h,00ah	; 50ec
+	defb 01bh,013h,00fh	; 50ef
+	defb 00bh,015h,008h	; 50f2
+	defb 003h,015h,00fh	; 50f5
+	defb 01eh,00ch,00ah	; 50f8
+	defb 018h,013h,00fh	; 50fb
+	defb 013h,001h,001h	; 50fe
+	defb 028h,014h,00ah	; 5101
+	defb 025h,00ch,001h	; 5104
+	defb 018h,002h,00ah	; 5107
+	defb 01bh,013h,00fh	; 510a
+	defb 007h,003h,001h	; 510d
+	defb 007h,003h,001h	; 5110
+
+; ----------------------------------------------------------------------
+; DATOS datos_del_golfista_palos_1_a_7: Las 22 piezas del golfista de los
+;   palos 1 a 7, tres bytes cada una
+;   0x5113..0x5155  (66 bytes)
+DATA_datos_del_golfista_palos_1_a_7:
+	defb 020h,00eh,001h	; 5113
+	defb 014h,00eh,00ah	; 5116
+	defb 004h,00eh,001h	; 5119
+	defb 007h,00eh,008h	; 511c
+	defb 000h,00eh,00fh	; 511f
+	defb 017h,00eh,00fh	; 5122
+	defb 017h,00eh,00fh	; 5125
+	defb 018h,00eh,00ah	; 5128
+	defb 010h,01eh,001h	; 512b
+	defb 019h,00eh,001h	; 512e
+	defb 017h,00eh,00fh	; 5131
+	defb 017h,00eh,00ah	; 5134
+	defb 007h,00eh,008h	; 5137
+	defb 007h,00eh,00fh	; 513a
+	defb 007h,00eh,008h	; 513d
+	defb 001h,00eh,00fh	; 5140
+	defb 017h,00eh,00fh	; 5143
+	defb 017h,00eh,001h	; 5146
+	defb 017h,00eh,00ah	; 5149
+	defb 01fh,00eh,001h	; 514c
+	defb 017h,00eh,00fh	; 514f
+	defb 017h,00eh,00ah	; 5152
 
 ; ======================================================================
 ; CODIGO 0x5155..0x5184  (47 bytes)
@@ -2775,7 +2886,7 @@ distancia_entre_limites:		; La distancia de camara es la resta de sus dos topes
 	cp 012h		;5712   ; y en el paso 0x12 se para
 	jr z,velocidad_de_camara		;5714
 	inc (hl)			;5716   ; uno mas
-	call nueve_columnas_de_altura		;5717   ; Actualiza los limites de camara en pasos de 8
+	call esconde_los_sprites_de_fuera		;5717   ; Actualiza los limites de camara en pasos de 8
 	call nueve_columnas		;571a   ; y nueve mas
 	ld hl,0e098h		;571d
 	ld a,(hl)			;5720
@@ -3191,7 +3302,7 @@ pinta_el_golpe:		; Escribe el marcador de golpe y su separador
 	inc hl			;5a35
 	ld a,095h		;5a36   ; 0x95 es el separador que va detras
 	call 0004dh		;5a38   ; BIOS WRTVRM - Writes data in VRAM
-	call anima_al_golfista		;5a3b   ; Monta el sprite inicial del golfista (0x5AFD) en la posicion de salida
+	call monta_la_vista_del_campo		;5a3b   ; Monta el sprite inicial del golfista (0x5AFD) en la posicion de salida
 	ld b,013h		;5a3e   ; veintiuna filas
 	ld de,00000h		;5a40
 	ld hl,0ea00h		;5a43   ; desde 0xEA00
@@ -3292,7 +3403,7 @@ DATA_bloque_hud_00:
 ; ======================================================================
 
 
-anima_al_golfista:		; Monta el fondo y descomprime los dos cuadros del golfista que tocan
+monta_la_vista_del_campo:		; Monta la lista de codigos de tile y descomprime los DOS TROZOS de la vista en perspectiva: el cielo en 0xEA00 y el suelo del tramo en 0xEA69, seguidos
 	ld hl,(0e0b4h)		;5afd   ; Indice de hoyo/terreno en (0xE0B4): 0xA875 monta el fondo del campo antes de animar al golfista
 	ld b,l			;5b00   ; el hoyo, en B
 	ld c,h			;5b01   ; y el byte alto, en C
@@ -3300,7 +3411,7 @@ anima_al_golfista:		; Monta el fondo y descomprime los dos cuadros del golfista 
 	call limpia_para_el_fondo		;5b03   ; primero el fondo del campo
 	pop bc			;5b06
 	push bc			;5b07
-	call cuadro_del_golfista		;5b08   ; y el cuadro del golfista que toca
+	call primer_tramo_del_hoyo		;5b08   ; y el cuadro del golfista que toca
 	ld b,000h		;5b0b
 	ld hl,06a2bh		;5b0d   ; Tabla de sprites del golfista en 0x6A2B, indexada por el fotograma acumulado que calcula 0x5E40
 	add hl,bc			;5b10   ; doblado: la tabla de 0x6A2B es de punteros
@@ -3349,8 +3460,8 @@ veintiuna:		; El ancho de la vista
 	ld b,015h		;5b4d   ; veintiuna columnas de ancho
 pinta_una_celda_de_la_vista:		; Dibuja la celda y avanza o retrocede el puntero segun el espejo
 	push bc			;5b4f
-	call tile_por_indice		;5b50   ; Segun el bit 7 del byte leido (0x5B61), retrocede o no el puntero
-	bit 7,a		;5b53   ; el bit 7 del codigo
+	call tile_por_indice		;5b50   ; Dibuja la celda; el puntero avanza o retrocede segun el espejo, que es lo que deja A cargado desde 0x5B42
+	bit 7,a		;5b53   ; el bit 7 de (0xE0A0) OTRA VEZ, no el del byte leido: tile_por_indice conserva A, asi que este es el mismo espejo de 0x5B45
 	jr z,avanza_el_puntero		;5b55
 	dec hl			;5b57   ; con el puesto, el origen retrocede
 	jr siguiente_columna		;5b58
@@ -3382,17 +3493,17 @@ tile_por_indice:		; El corazon del dibujado: el byte del mapa indexa la lista ac
 	pop bc			;5b78
 	pop af			;5b79
 	ret			;5b7a
-nueve_columnas_de_altura:		; Prepara el recorrido de las nueve columnas de altura
+esconde_los_sprites_de_fuera:		; Recorre los NUEVE sprites del golfista en el buffer de atributos de 0xE0EA -cuatro bytes cada uno- y al que se sale de pantalla le pone Y=0xC2 para esconderlo
 	ld bc,00900h		;5b7b   ; nueve columnas
 	ld hl,0e0eah		;5b7e
-mira_si_cabe:		; Si la fila se sale de pantalla, marca acarreo y usa el relleno
+mira_si_cabe:		; Si la Y del sprite mas ocho pasa de 0x98, ya no cabe: cuenta uno en C y la cambia por 0xC2, que es la Y de fuera de pantalla
 	ld a,(hl)			;5b81   ; Si la fila se sale de pantalla, marca C y usa el patron de relleno 0xC2
 	add a,008h		;5b82   ; ocho mas de altura
 	cp 098h		;5b84   ; pasado 0x98 ya no cabe en pantalla
 	jr c,guarda_la_altura		;5b86
 	inc c			;5b88   ; se cuenta
 	ld a,0c2h		;5b89   ; y se pone el patron de relleno
-guarda_la_altura:		; Deja el valor en la columna y reinicia la animacion si el hoyo es corto
+guarda_la_altura:		; Deja la Y en el atributo y salta al siguiente sprite, cuatro bytes mas alla
 	ld (hl),a			;5b8b   ; Guarda el valor en la columna; si el hoyo es menor que 9, reinicia el paso de animacion
 	inc hl			;5b8c   ; cuatro bytes por columna
 	inc hl			;5b8d
@@ -3593,7 +3704,7 @@ avanza_la_fila:		; Sube la fila en 0x20 y para en 0x60
 pinta_y_avanza:		; Pinta la fila y pasa a la siguiente
 	call fila_siguiente		;5d20
 	djnz avanza_la_fila		;5d23
-	call anima_al_golfista		;5d25   ; con el terreno montado, el golfista encima
+	call monta_la_vista_del_campo		;5d25   ; con el terreno montado, el golfista encima
 	ld hl,01a40h		;5d28
 	call 0004ah		;5d2b   ; BIOS RDVRM - Reads the content of VRAM
 	add a,020h		;5d2e
@@ -3739,7 +3850,7 @@ plano_una_fila:		; Una fila del plano; con el espejo puesto, adelanta nueve y re
 diez_columnas:		; El ancho del plano
 	ld b,00ah		;5e1f
 plano_una_celda:		; Dibuja la celda y mueve el puntero en el sentido que toque
-	push bc			;5e21   ; Lee un byte de la tabla y retrocede el puntero un paso extra si es negativo
+	push bc			;5e21   ; Dibuja la celda; el `bit 7,a` de 0x5E26 NO mira el byte leido sino (0xE0A0), que tile_por_indice conserva: con el espejo puesto el inc y los dos dec dejan un retroceso neto
 	call tile_por_indice		;5e22
 	inc hl			;5e25
 	bit 7,a		;5e26
@@ -3761,7 +3872,7 @@ plano_siguiente_fila:		; Avanza diez en los datos y treinta y dos en la pantalla
 	pop bc			;5e3c
 	djnz plano_una_fila		;5e3d
 	ret			;5e3f
-cuadro_del_golfista:		; Suma los pasos de tabla_pasos_golfista y devuelve el indice de cuadro acumulado
+primer_tramo_del_hoyo:		; Suma los tramos de los hoyos anteriores y devuelve en C la primera entrada de tabla_vistas_del_campo de este hoyo, y en B cuantas tiene
 	push af			;5e40   ; Suma los B-1 primeros pasos de tabla_pasos_golfista y devuelve el acumulado en C (indice de fotograma) y el paso actual en B
 	push hl			;5e41
 	xor a			;5e42
@@ -3782,10 +3893,12 @@ devuelve_el_cuadro:		; Deja el acumulado en C y el paso actual en B
 	ret			;5e53
 
 ; ----------------------------------------------------------------------
-; DATOS tabla_pasos_golfista: 18 pasos (tipico 4-6) sumados por 0x5E40 para
-;   calcular el indice acumulado de tabla_cuadros_del_golfista
+; DATOS tabla_tramos_por_hoyo: Cuantas entradas de tabla_vistas_del_campo
+;   tiene cada hoyo: una de cielo y las demas de suelo, o sea entre tres y
+;   cinco TRAMOS jugables por hoyo (80 en total). 0x5E40 los suma para dar con
+;   el grupo del hoyo
 ;   0x5e54..0x5e66  (18 bytes)
-DATA_tabla_pasos_golfista:
+DATA_tabla_tramos_por_hoyo:
 	defb 006h,004h,006h,006h,006h,005h,006h,005h,005h,006h,006h,006h,005h,004h,005h,005h	; 5e54  ................
 	defb 006h,006h	; 5e64
 
@@ -4281,7 +4394,7 @@ recorre_los_sub_bloques:		; Cada sub-bloque empieza por su cuenta de objetos
 	ld de,(0e0b4h)		;6139   ; Comprueba si el hoyo actual coincide con el ultimo fotograma de 0x5E40; si es asi, procesa dos objetos extra
 	ld b,e			;613d
 	push bc			;613e
-	call cuadro_del_golfista		;613f
+	call primer_tramo_del_hoyo		;613f
 	ld a,b			;6142
 	pop bc			;6143
 	dec a			;6144
@@ -4459,7 +4572,7 @@ cuadro_de_golpe_especial:		; Con acarreo, calcula el cuadro especial usando (0xE
 	jr nc,refleja_la_fila		;624c
 	push bc			;624e
 	ld bc,(0e0b3h)		;624f
-	call cuadro_del_golfista		;6253
+	call primer_tramo_del_hoyo		;6253
 	dec b			;6256
 	dec b			;6257
 	pop af			;6258
@@ -4717,10 +4830,15 @@ DATA_objetos_hoyo_10:
 	defb 005h,015h	; 6a29
 
 ; ----------------------------------------------------------------------
-; DATOS tabla_cuadros_del_golfista: 98 punteros de 16 bits a sprites del
-;   golfista, indexados por el acumulado de 0x5E40 desde 0x5AFD (0x5B0D)
+; DATOS tabla_vistas_del_campo: 98 punteros de 16 bits a los MAPAS DE LA VISTA
+;   en perspectiva, NO a cuadros de un golfista. Van en dieciocho grupos, uno
+;   por hoyo, y tabla_tramos_por_hoyo (0x5E54) dice cuantos caen en cada
+;   grupo: el primero del grupo son 105 bytes (21x5, el cielo) y los demas 294
+;   (21x14, el suelo de cada tramo). 0x5B17 y 0x5B27 los descomprimen SEGUIDOS
+;   en 0xEA00 y 0xEA69, que es 0xEA00+105, y juntos hacen 399 bytes = 19 filas
+;   de 21 columnas
 ;   0x6a2b..0x6aef  (196 bytes)
-DATA_tabla_cuadros_del_golfista:
+DATA_tabla_vistas_del_campo:
 	defw 06aefh,06b20h,06bc3h,06c6bh,06d12h,06d8ch	; 6a2b
 	defw 07d8dh,07dcbh,07eb1h,07f69h,06e29h,06e64h	; 6a37
 	defw 06f19h,06fc5h,07064h,070e9h,07b25h,07b53h	; 6a43
@@ -4737,25 +4855,25 @@ DATA_tabla_cuadros_del_golfista:
 	defw 078e8h,079adh,07a56h,0839bh,083d0h,08473h	; 6ac7
 	defw 0854bh,085c9h,0801bh,0804eh,08116h,081dch	; 6ad3
 	defw 08271h,08302h,0867ch,086b1h,0879fh,08899h	; 6adf
-	defw 0898ah,08a63h	; 6aeb  -> DATA_cuadro_golfista_53 DATA_cuadro_golfista_54
+	defw 0898ah,08a63h	; 6aeb  -> DATA_vista_hoyo_18_tramo_4 DATA_vista_hoyo_18_tramo_5
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_01: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (49 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_01_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   1. Comprimido con 0xA8FB (49 bytes fuente, 105 de salida).
 ;   0x6aef..0x6b20  (49 bytes)
-DATA_cuadro_golfista_01:
+DATA_vista_hoyo_01_cielo:
 	defb 02fh,000h,0ffh,024h,014h,008h,009h,00ah,00bh,00ch,0ffh,004h,014h,010h,011h,012h	; 6aef  /..$............
 	defb 013h,0ffh,008h,014h,023h,024h,00dh,00eh,00fh,0ffh,016h,014h,015h,016h,017h,018h	; 6aff  ....#$..........
 	defb 019h,01ah,01bh,01ch,019h,01ah,01dh,01eh,015h,016h,017h,01fh,020h,021h,022h,01dh	; 6b0f  ............ !".
 	defb 01eh	; 6b1f
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_02: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_01_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 1.
+;   Comprimido con 0xA8FB (163 bytes fuente, 294 de salida).
 ;   0x6b20..0x6bc3  (163 bytes)
-DATA_cuadro_golfista_02:
+DATA_vista_hoyo_01_tramo_1:
 	defb 0a1h,000h,0ffh,008h,003h,034h,0ffh,004h,003h,034h,034h,0ffh,00dh,003h,034h,035h	; 6b20  .....4...44...45
 	defb 086h,087h,083h,085h,035h,035h,036h,038h,0ffh,008h,003h,036h,038h,003h,035h,02eh	; 6b30  ....5568...68.5.
 	defb 032h,092h,093h,02ch,02bh,003h,037h,039h,003h,03ah,03dh,040h,03ah,03dh,040h,003h	; 6b40  2..,+.79.:=@:=@.
@@ -4769,11 +4887,11 @@ DATA_cuadro_golfista_02:
 	defb 003h,003h,002h	; 6bc0
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_03: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (168 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_01_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 1.
+;   Comprimido con 0xA8FB (168 bytes fuente, 294 de salida).
 ;   0x6bc3..0x6c6b  (168 bytes)
-DATA_cuadro_golfista_03:
+DATA_vista_hoyo_01_tramo_2:
 	defb 0a6h,000h,0ffh,007h,003h,034h,0ffh,008h,003h,034h,0ffh,008h,003h,036h,038h,003h	; 6bc3  .....4...4...68.
 	defb 035h,078h,02eh,04eh,0bbh,0bbh,04ch,04ah,079h,035h,036h,038h,003h,003h,03ah,03dh	; 6bd3  5x.N..LJy568..:=
 	defb 040h,003h,037h,039h,02eh,04eh,032h,07bh,0a9h,0aah,0a6h,0a7h,0a8h,029h,027h,037h	; 6be3  @.79.N2{.....)'7
@@ -4787,11 +4905,11 @@ DATA_cuadro_golfista_03:
 	defb 064h,047h,047h,046h,045h,0ffh,015h,02ch	; 6c63  dGGFE..,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_04: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (167 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_01_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 1.
+;   Comprimido con 0xA8FB (167 bytes fuente, 294 de salida).
 ;   0x6c6b..0x6d12  (167 bytes)
-DATA_cuadro_golfista_04:
+DATA_vista_hoyo_01_tramo_3:
 	defb 0a5h,000h,0ffh,003h,003h,03ah,03dh,040h,036h,038h,0ffh,008h,003h,036h,038h,0ffh	; 6c6b  .....:=@68...68.
 	defb 006h,003h,03bh,03eh,041h,037h,039h,02eh,04eh,0ffh,003h,0bbh,04ch,04ah,079h,037h	; 6c7b  ..;>A79.N...LJy7
 	defb 039h,003h,03ah,03dh,0ffh,003h,003h,03ch,03fh,042h,086h,030h,07bh,0ffh,005h,02ch	; 6c8b  9.:=...<?B.0{..,
@@ -4805,11 +4923,11 @@ DATA_cuadro_golfista_04:
 	defb 081h,081h,056h,059h,0ffh,03fh,02ch	; 6d0b
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_05: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (122 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_01_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 1.
+;   Comprimido con 0xA8FB (122 bytes fuente, 294 de salida).
 ;   0x6d12..0x6d8c  (122 bytes)
-DATA_cuadro_golfista_05:
+DATA_vista_hoyo_01_tramo_4:
 	defb 078h,000h,003h,03ah,03dh,040h,003h,036h,038h,0ffh,009h,003h,036h,038h,03ah,03dh	; 6d12  x..:=@.68...68:=
 	defb 040h,003h,03bh,03eh,041h,003h,037h,039h,0ffh,009h,003h,037h,039h,03bh,03eh,041h	; 6d22  @.;>A.79...79;>A
 	defb 003h,03ch,03fh,042h,02eh,04dh,04eh,066h,0a0h,0ffh,005h,0b9h,094h,083h,04ch,04ah	; 6d32  .<?B.MNf......LJ
@@ -4820,11 +4938,11 @@ DATA_cuadro_golfista_05:
 	defb 077h,0ffh,006h,003h,06fh,072h,0b4h,0ffh,06dh,02ch	; 6d82  w...or..m,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_06: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (157 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_01_tramo_5: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 1.
+;   Comprimido con 0xA8FB (157 bytes fuente, 294 de salida).
 ;   0x6d8c..0x6e29  (157 bytes)
-DATA_cuadro_golfista_06:
+DATA_vista_hoyo_01_tramo_5:
 	defb 09bh,000h,03ah,03dh,040h,036h,038h,034h,003h,003h,078h,02eh,04eh,04ch,04ah,079h	; 6d8c  ..:=@684..x.NLJy
 	defb 003h,003h,034h,036h,038h,003h,003h,03bh,03eh,041h,037h,039h,035h,02eh,04eh,02fh	; 6d9c  ..468..;>A795.N/
 	defb 07bh,09eh,09fh,07ah,029h,04ch,04ah,035h,037h,039h,036h,038h,03ch,03fh,042h,02eh	; 6dac  {..z)LJ57968<?B.
@@ -4837,22 +4955,24 @@ DATA_cuadro_golfista_06:
 	defb 075h,077h,076h,0ffh,005h,003h,06fh,0b8h,072h,0afh,0ffh,058h,02ch	; 6e1c  uwv...o.r..X,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_07: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (59 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_03_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   3; lo comparten tambien los hoyo.tramo 12.0. Comprimido con 0xA8FB (59
+;   bytes fuente, 105 de salida).
 ;   0x6e29..0x6e64  (59 bytes)
-DATA_cuadro_golfista_07:
+DATA_vista_hoyo_03_cielo:
 	defb 039h,000h,0ffh,016h,014h,008h,009h,00ah,00ch,0ffh,008h,014h,008h,00bh,009h,00ah	; 6e29  9...............
 	defb 00ch,0ffh,004h,014h,023h,024h,00eh,00fh,014h,010h,013h,0ffh,005h,014h,023h,024h	; 6e39  ....#$........#$
 	defb 00dh,00eh,00fh,0ffh,018h,014h,021h,022h,01dh,01eh,016h,01fh,020h,022h,01ch,01ah	; 6e49  ......!".... "..
 	defb 01bh,01ch,020h,01ah,01dh,016h,017h,022h,01dh,01eh,015h	; 6e59  .. ...."...
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_08: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (181 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_03_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 3; lo
+;   comparten tambien los hoyo.tramo 12.1. Comprimido con 0xA8FB (181 bytes
+;   fuente, 294 de salida).
 ;   0x6e64..0x6f19  (181 bytes)
-DATA_cuadro_golfista_08:
+DATA_vista_hoyo_03_tramo_1:
 	defb 0b3h,000h,0ffh,00ah,003h,034h,0ffh,013h,003h,034h,035h,08ch,02fh,02ah,04ch,04ah	; 6e64  .....4...45./*LJ
 	defb 003h,034h,0ffh,008h,003h,036h,038h,003h,003h,035h,02dh,032h,090h,08fh,089h,08ah	; 6e74  .4...68..5-2....
 	defb 088h,035h,036h,038h,0ffh,004h,003h,036h,038h,037h,039h,003h,078h,030h,07bh,051h	; 6e84  .568...6879.x0{Q
@@ -4867,11 +4987,12 @@ DATA_cuadro_golfista_08:
 	defb 003h,007h,003h,003h,002h	; 6f14
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_09: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (172 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_03_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 3; lo
+;   comparten tambien los hoyo.tramo 12.2. Comprimido con 0xA8FB (172 bytes
+;   fuente, 294 de salida).
 ;   0x6f19..0x6fc5  (172 bytes)
-DATA_cuadro_golfista_09:
+DATA_vista_hoyo_03_tramo_2:
 	defb 0aah,000h,0ffh,009h,003h,034h,0ffh,005h,003h,034h,034h,0ffh,00ah,003h,036h,038h	; 6f19  .....4...44...68
 	defb 003h,035h,04dh,04eh,04ch,04ah,079h,035h,035h,04dh,04eh,066h,04ch,0ffh,004h,003h	; 6f29  .5MNLJy55MNfL...
 	defb 036h,038h,037h,039h,0d3h,032h,07bh,02ch,02ch,07ah,08bh,066h,0a1h,0a8h,0a9h,0a6h	; 6f39  6879.2{,,z.f....
@@ -4885,11 +5006,12 @@ DATA_cuadro_golfista_09:
 	defb 0ffh,003h,047h,0bfh,0ffh,00dh,02ch,07ah,029h,0ffh,03fh,02ch	; 6fb9  ..G...,z).?,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_10: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (159 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_03_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 3; lo
+;   comparten tambien los hoyo.tramo 12.3. Comprimido con 0xA8FB (159 bytes
+;   fuente, 294 de salida).
 ;   0x6fc5..0x7064  (159 bytes)
-DATA_cuadro_golfista_10:
+DATA_vista_hoyo_03_tramo_3:
 	defb 09dh,000h,0ffh,005h,003h,036h,038h,0ffh,004h,003h,036h,038h,0ffh,00bh,003h,036h	; 6fc5  .....68...68...6
 	defb 038h,037h,039h,078h,0ffh,003h,003h,037h,039h,078h,02eh,084h,0ffh,005h,066h,03ah	; 6fd5  879x...79x....f:
 	defb 03dh,040h,037h,039h,02eh,04eh,0ffh,004h,066h,08bh,066h,032h,0cah,0cch,0cbh,06ch	; 6fe5  =@79.N..f.f2...l
@@ -4902,11 +5024,12 @@ DATA_cuadro_golfista_10:
 	defb 006h,025h,0ffh,010h,02ch,05bh,05ch,05dh,025h,025h,0ffh,013h,02ch,05bh,05ch	; 7055  .%..,[\]%%..,[\
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_11: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (133 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_03_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 3; lo
+;   comparten tambien los hoyo.tramo 12.4. Comprimido con 0xA8FB (133 bytes
+;   fuente, 294 de salida).
 ;   0x7064..0x70e9  (133 bytes)
-DATA_cuadro_golfista_11:
+DATA_vista_hoyo_03_tramo_4:
 	defb 083h,000h,0ffh,00ah,003h,036h,038h,036h,038h,0ffh,008h,003h,078h,02eh,04eh,02fh	; 7064  .....6868...x.N/
 	defb 0ffh,003h,066h,081h,027h,037h,039h,037h,039h,02eh,04eh,02fh,0ffh,003h,066h,081h	; 7074  ..f.'7979.N/..f.
 	defb 02dh,02fh,07bh,0ffh,020h,02ch,0cdh,0ceh,0ffh,003h,003h,0abh,071h,0ffh,00ah,02ch	; 7084  -/{. ,......q..,
@@ -4918,11 +5041,12 @@ DATA_cuadro_golfista_11:
 	defb 060h,055h,0ffh,009h,025h	; 70e4
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_12: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (161 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_03_tramo_5: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 3; lo
+;   comparten tambien los hoyo.tramo 12.5. Comprimido con 0xA8FB (161 bytes
+;   fuente, 294 de salida).
 ;   0x70e9..0x718a  (161 bytes)
-DATA_cuadro_golfista_12:
+DATA_vista_hoyo_03_tramo_5:
 	defb 09fh,000h,0ffh,007h,003h,034h,078h,04dh,04eh,04ch,04ah,079h,003h,034h,0ffh,006h	; 70e9  .....4xMNLJy.4..
 	defb 003h,036h,038h,003h,036h,038h,003h,035h,030h,07bh,09fh,0a0h,07ah,029h,027h,035h	; 70f9  .68.68.50{..z)'5
 	defb 003h,036h,038h,03ah,03dh,003h,037h,039h,003h,037h,039h,078h,033h,07bh,0ffh,005h	; 7109  .68:=.79.79x3{..
@@ -4936,22 +5060,24 @@ DATA_cuadro_golfista_12:
 	defb 02ch	; 7189
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_13: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (49 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_05_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   5; lo comparten tambien los hoyo.tramo 7.0. Comprimido con 0xA8FB (49
+;   bytes fuente, 105 de salida).
 ;   0x718a..0x71bb  (49 bytes)
-DATA_cuadro_golfista_13:
+DATA_vista_hoyo_05_cielo:
 	defb 02fh,000h,0ffh,019h,014h,010h,013h,010h,014h,014h,008h,00ch,00bh,009h,00ah,00ch	; 718a  /...............
 	defb 0ffh,00fh,014h,023h,00eh,00eh,024h,00dh,00eh,0ffh,01bh,014h,01fh,020h,022h,01ch	; 719a  ...#..$...... ".
 	defb 01ah,01fh,020h,022h,01dh,01eh,016h,01fh,020h,01ah,01dh,01eh,016h,01bh,022h,01dh	; 71aa  .. ".... .....".
 	defb 01eh	; 71ba
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_14: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (196 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_05_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 5; lo
+;   comparten tambien los hoyo.tramo 7.1. Comprimido con 0xA8FB (196 bytes
+;   fuente, 294 de salida).
 ;   0x71bb..0x727f  (196 bytes)
-DATA_cuadro_golfista_14:
+DATA_vista_hoyo_05_tramo_1:
 	defb 0c2h,000h,003h,003h,034h,003h,003h,078h,0ffh,003h,0ceh,0ffh,004h,003h,034h,0ffh	; 71bb  ....4..x......4.
 	defb 008h,003h,034h,035h,04dh,085h,032h,02ch,08eh,08fh,08dh,003h,034h,003h,035h,003h	; 71cb  ..45M.2,....4.5.
 	defb 003h,036h,038h,0ffh,004h,003h,035h,030h,07bh,0adh,095h,096h,090h,04bh,003h,003h	; 71db  .68...50{....K..
@@ -4967,11 +5093,12 @@ DATA_cuadro_golfista_14:
 	defb 007h,003h,003h,002h	; 727b
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_15: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (186 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_05_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 5; lo
+;   comparten tambien los hoyo.tramo 7.2. Comprimido con 0xA8FB (186 bytes
+;   fuente, 294 de salida).
 ;   0x727f..0x7339  (186 bytes)
-DATA_cuadro_golfista_15:
+DATA_vista_hoyo_05_tramo_2:
 	defb 0b8h,000h,003h,034h,034h,0ffh,007h,003h,0ffh,004h,0ceh,079h,003h,034h,0ffh,004h	; 727f  ...44......y.4..
 	defb 003h,034h,035h,035h,078h,04dh,04eh,0c0h,02fh,066h,09ah,0ffh,004h,0a8h,02ah,083h	; 728f  .455xMN./f....*.
 	defb 035h,036h,038h,003h,003h,035h,02eh,04eh,02fh,07bh,0ffh,003h,02ch,0adh,02ch,09eh	; 729f  568..5.N/{..,.,.
@@ -4986,11 +5113,12 @@ DATA_cuadro_golfista_15:
 	defb 0c8h,0cdh,047h,0ffh,014h,02ch,0aah,0ffh,015h,02ch	; 732f  ..G..,...,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_16: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (175 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_05_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 5; lo
+;   comparten tambien los hoyo.tramo 7.3. Comprimido con 0xA8FB (175 bytes
+;   fuente, 294 de salida).
 ;   0x7339..0x73e8  (175 bytes)
-DATA_cuadro_golfista_16:
+DATA_vista_hoyo_05_tramo_3:
 	defb 0adh,000h,0ffh,00bh,003h,034h,034h,0ffh,010h,003h,036h,038h,003h,035h,035h,04dh	; 7339  .....44...68.55M
 	defb 04eh,02fh,0ffh,003h,066h,093h,082h,03dh,040h,03ah,03dh,040h,003h,036h,038h,037h	; 7349  N/..f..=@:=@.687
 	defb 039h,078h,02eh,031h,07bh,068h,069h,003h,06ch,06dh,0bah,0bbh,03eh,041h,03bh,03eh	; 7359  9x.1{hi.lm..>A;>
@@ -5004,11 +5132,12 @@ DATA_cuadro_golfista_16:
 	defb 006h,047h,097h,0ffh,00eh,02ch,0b1h,0b3h,0ffh,003h,0afh,0b0h,0ffh,024h,02ch	; 73d9  .G...,.......$,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_17: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (137 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_05_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 5; lo
+;   comparten tambien los hoyo.tramo 7.4. Comprimido con 0xA8FB (137 bytes
+;   fuente, 294 de salida).
 ;   0x73e8..0x7471  (137 bytes)
-DATA_cuadro_golfista_17:
+DATA_vista_hoyo_05_tramo_4:
 	defb 087h,000h,003h,03ah,03dh,040h,036h,038h,0ffh,00bh,003h,036h,038h,03ah,03dh,003h	; 73e8  ...:=@68...68:=.
 	defb 03bh,03eh,041h,037h,039h,078h,04dh,04eh,0ffh,004h,0c0h,04ch,04ah,04bh,079h,037h	; 73f8  ;>A79xMN...LJKy7
 	defb 039h,03bh,03eh,003h,03ch,03fh,042h,02eh,04eh,02fh,07bh,0ffh,007h,02ch,07ah,029h	; 7408  9;>.<?B.N/{..,z)
@@ -5020,11 +5149,12 @@ DATA_cuadro_golfista_17:
 	defb 0b7h,047h,047h,0cch,0cch,0d2h,0ffh,072h,02ch	; 7468  .GG....r,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_18: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (143 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_05_tramo_5: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 5; lo
+;   comparten tambien los hoyo.tramo 7.5. Comprimido con 0xA8FB (143 bytes
+;   fuente, 294 de salida).
 ;   0x7471..0x7500  (143 bytes)
-DATA_cuadro_golfista_18:
+DATA_vista_hoyo_05_tramo_5:
 	defb 08dh,000h,0ffh,006h,003h,034h,003h,0ffh,003h,0ceh,04dh,04eh,0c0h,04ch,027h,079h	; 7471  .....4....MN.L'y
 	defb 036h,038h,03ah,03dh,003h,003h,036h,038h,036h,038h,035h,094h,0ffh,005h,02ch,098h	; 7481  68:=..68685...,.
 	defb 099h,0c5h,08dh,037h,039h,03bh,03eh,003h,003h,037h,039h,037h,039h,0c6h,092h,0ffh	; 7491  ...79;>..7979...
@@ -5036,22 +5166,24 @@ DATA_cuadro_golfista_18:
 	defb 0ffh,008h,02ch,0a9h,0c1h,0ffh,007h,003h,06fh,0a7h,072h,0a4h,0ffh,043h,02ch	; 74f1  ..,.....o.r..C,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_19: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (59 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_09_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   9; lo comparten tambien los hoyo.tramo 13.0. Comprimido con 0xA8FB (59
+;   bytes fuente, 105 de salida).
 ;   0x7500..0x753b  (59 bytes)
-DATA_cuadro_golfista_19:
+DATA_vista_hoyo_09_cielo:
 	defb 039h,000h,0ffh,017h,014h,008h,009h,00ah,00bh,00ch,0ffh,004h,014h,008h,00bh,00bh	; 7500  9...............
 	defb 00ch,0ffh,008h,014h,023h,024h,00dh,00eh,00fh,0ffh,004h,014h,023h,00eh,00fh,00fh	; 7510  ....#$......#...
 	defb 014h,010h,013h,0ffh,018h,014h,015h,016h,017h,01fh,020h,01ah,01ch,01ah,01bh,01ah	; 7520  .......... .....
 	defb 01dh,016h,017h,01ah,01bh,01ch,01ah,01dh,01eh,01eh,014h	; 7530  ...........
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_20: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (189 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_09_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 9; lo
+;   comparten tambien los hoyo.tramo 13.1. Comprimido con 0xA8FB (189 bytes
+;   fuente, 294 de salida).
 ;   0x753b..0x75f8  (189 bytes)
-DATA_cuadro_golfista_20:
+DATA_vista_hoyo_09_tramo_1:
 	defb 0bbh,000h,0ffh,005h,003h,034h,003h,078h,0c3h,0c3h,079h,0ffh,003h,003h,034h,034h	; 753b  .....4.x..y...44
 	defb 0ffh,008h,003h,036h,038h,035h,02dh,032h,02ch,02ch,02ah,028h,04ah,04bh,035h,035h	; 754b  ...685-2,,*(JK55
 	defb 003h,036h,038h,003h,003h,03ah,03dh,040h,037h,039h,086h,02ch,08ah,08bh,0ffh,004h	; 755b  .68..:=@79.,....
@@ -5066,11 +5198,12 @@ DATA_cuadro_golfista_20:
 	defb 02ch,000h,001h,003h,003h,007h,0ffh,00ch,003h,007h,003h,003h,002h	; 75eb  ,............
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_21: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (176 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_09_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 9; lo
+;   comparten tambien los hoyo.tramo 13.2. Comprimido con 0xA8FB (176 bytes
+;   fuente, 294 de salida).
 ;   0x75f8..0x76a8  (176 bytes)
-DATA_cuadro_golfista_21:
+DATA_vista_hoyo_09_tramo_2:
 	defb 0aeh,000h,003h,003h,036h,038h,034h,0ffh,00ah,003h,034h,036h,038h,03ah,03dh,040h	; 75f8  ....684...468:=@
 	defb 03dh,040h,037h,039h,035h,02eh,04eh,02fh,0ffh,003h,066h,082h,04ch,04ah,04bh,035h	; 7608  =@795.N/..f.LJK5
 	defb 037h,039h,03bh,03eh,041h,03eh,041h,003h,003h,030h,07bh,09ah,09bh,097h,098h,099h	; 7618  79;>A>A..0{.....
@@ -5084,11 +5217,12 @@ DATA_cuadro_golfista_21:
 	defb 007h,025h,07ch,07dh,0ffh,00ch,02ch,0ffh,004h,025h,056h,058h,0a8h,0ffh,00eh,02ch	; 7698  .%|}..,..%VX...,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_22: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (140 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_09_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 9; lo
+;   comparten tambien los hoyo.tramo 13.3. Comprimido con 0xA8FB (140 bytes
+;   fuente, 294 de salida).
 ;   0x76a8..0x7734  (140 bytes)
-DATA_cuadro_golfista_22:
+DATA_vista_hoyo_09_tramo_3:
 	defb 08ah,000h,03ah,03dh,040h,003h,036h,038h,0ffh,00bh,003h,036h,038h,03ah,03dh,03bh	; 76a8  ..:=@.68...68:=;
 	defb 03eh,041h,003h,037h,039h,04dh,04eh,02fh,0ffh,005h,066h,082h,04ch,027h,037h,039h	; 76b8  >A.79MN/..f.L'79
 	defb 03bh,03eh,03ch,03fh,042h,02dh,02fh,066h,07bh,0ffh,009h,02ch,07ah,02ah,084h,03ch	; 76c8  ;><?B-/f{..,z*.<
@@ -5100,11 +5234,12 @@ DATA_cuadro_golfista_22:
 	defb 02ch,063h,064h,0ffh,007h,047h,0b4h,0b5h,0b1h,0ffh,03fh,02ch	; 7728  ,cd..G....?,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_23: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (170 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_09_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 9; lo
+;   comparten tambien los hoyo.tramo 13.4. Comprimido con 0xA8FB (170 bytes
+;   fuente, 294 de salida).
 ;   0x7734..0x77de  (170 bytes)
-DATA_cuadro_golfista_23:
+DATA_vista_hoyo_09_tramo_4:
 	defb 0a8h,000h,003h,03ah,03dh,040h,036h,038h,003h,078h,04dh,04eh,0ffh,004h,0bdh,04ch	; 7734  ...:=@68.xMN...L
 	defb 027h,079h,036h,038h,03ah,03dh,003h,03bh,03eh,041h,037h,039h,02eh,02fh,07bh,0ffh	; 7744  'y68:=.;>A79./{.
 	defb 004h,02ch,095h,096h,07ah,02bh,037h,039h,03bh,03eh,003h,03ch,03fh,042h,02eh,02fh	; 7754  .,..z+79;>.<?B./
@@ -5118,21 +5253,23 @@ DATA_cuadro_golfista_23:
 	defb 077h,076h,0ffh,006h,003h,0beh,0bfh,0ffh,044h,02ch	; 77d4  wv......D,
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_24: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (47 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_08_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   8; lo comparten tambien los hoyo.tramo 15.0. Comprimido con 0xA8FB (47
+;   bytes fuente, 105 de salida).
 ;   0x77de..0x780d  (47 bytes)
-DATA_cuadro_golfista_24:
+DATA_vista_hoyo_08_cielo:
 	defb 02dh,000h,0ffh,020h,014h,008h,009h,00ah,00bh,00ch,0ffh,00ah,014h,010h,011h,013h	; 77de  -.. ............
 	defb 0ffh,003h,014h,020h,00eh,00fh,00eh,00fh,0ffh,01ah,014h,022h,023h,019h,01ah,018h	; 77ee  ... ......."#...
 	defb 019h,01ah,023h,019h,024h,025h,0ffh,004h,026h,027h,015h,01ch,01dh,016h,017h	; 77fe  ..#.$%..&'.....
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_25: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (219 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_08_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 8; lo
+;   comparten tambien los hoyo.tramo 15.1. Comprimido con 0xA8FB (219 bytes
+;   fuente, 294 de salida).
 ;   0x780d..0x78e8  (219 bytes)
-DATA_cuadro_golfista_25:
+DATA_vista_hoyo_08_tramo_1:
 	defb 0d9h,000h,0ffh,004h,003h,08dh,08eh,08fh,0ffh,007h,003h,034h,003h,036h,038h,03ah	; 780d  ...........4.68:
 	defb 03dh,040h,04eh,04fh,057h,059h,059h,058h,028h,05eh,0ffh,003h,090h,08eh,08fh,060h	; 781d  =@NOWYYX(^.....`
 	defb 035h,003h,037h,039h,03bh,03eh,041h,028h,080h,030h,047h,048h,030h,05dh,062h,0ffh	; 782d  5.79;>A(.0GH0]b.
@@ -5149,11 +5286,12 @@ DATA_cuadro_golfista_25:
 	defb 001h,003h,003h,007h,0ffh,00ch,003h,007h,003h,003h,002h	; 78dd  ...........
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_26: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (197 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_08_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 8; lo
+;   comparten tambien los hoyo.tramo 15.2. Comprimido con 0xA8FB (197 bytes
+;   fuente, 294 de salida).
 ;   0x78e8..0x79ad  (197 bytes)
-DATA_cuadro_golfista_26:
+DATA_vista_hoyo_08_tramo_2:
 	defb 0c3h,000h,0ffh,00eh,003h,036h,038h,03ah,03dh,040h,0ffh,004h,003h,08dh,08eh,090h	; 78e8  .....68:=@......
 	defb 04dh,04eh,091h,090h,08eh,08fh,060h,003h,003h,037h,039h,03bh,03eh,041h,003h,003h	; 78f8  MN....`..79;>A..
 	defb 04eh,04fh,0ffh,00bh,028h,05eh,05fh,060h,03ch,03fh,042h,003h,003h,057h,059h,05ah	; 7908  NO..(^_`<?B..WYZ
@@ -5169,11 +5307,12 @@ DATA_cuadro_golfista_26:
 	defb 02ah,08bh,0ffh,00ch,030h	; 79a8
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_27: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (169 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_08_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 8; lo
+;   comparten tambien los hoyo.tramo 15.3. Comprimido con 0xA8FB (169 bytes
+;   fuente, 294 de salida).
 ;   0x79ad..0x7a56  (169 bytes)
-DATA_cuadro_golfista_27:
+DATA_vista_hoyo_08_tramo_3:
 	defb 0a7h,000h,036h,038h,003h,034h,0ffh,00ch,003h,034h,003h,036h,038h,003h,037h,039h	; 79ad  ..68.4...4.68.79
 	defb 003h,035h,003h,08dh,0ffh,007h,08eh,05fh,060h,003h,035h,003h,037h,039h,003h,08dh	; 79bd  .5....._`.5.79..
 	defb 08eh,090h,050h,04fh,0ffh,00ah,028h,091h,0ffh,003h,090h,08eh,08eh,0ffh,003h,028h	; 79cd  ..PO..(........(
@@ -5187,11 +5326,12 @@ DATA_cuadro_golfista_27:
 	defb 0c4h,0c6h,0ffh,005h,085h,086h,0ffh,04ah,030h	; 7a4d  .......J0
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_28: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (207 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_08_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 8; lo
+;   comparten tambien los hoyo.tramo 15.4. Comprimido con 0xA8FB (207 bytes
+;   fuente, 294 de salida).
 ;   0x7a56..0x7b25  (207 bytes)
-DATA_cuadro_golfista_28:
+DATA_vista_hoyo_08_tramo_4:
 	defb 0cdh,000h,003h,036h,038h,036h,038h,003h,034h,0ffh,003h,003h,049h,046h,09eh,003h	; 7a56  ...6868.4...IF..
 	defb 034h,0ffh,007h,003h,037h,039h,037h,039h,003h,035h,04ch,04fh,064h,0bdh,0b1h,0b2h	; 7a66  4...7979.5LOd...
 	defb 09dh,035h,003h,036h,038h,03ah,03dh,040h,08dh,08eh,090h,04dh,04eh,04fh,028h,057h	; 7a76  .5.68:=@...MNO(W
@@ -5207,21 +5347,23 @@ DATA_cuadro_golfista_28:
 	defb 004h,003h,0d0h,0d1h,0d2h,0ffh,008h,028h,0a8h,0a8h,0a9h,0aah,0ffh,017h,003h	; 7b16  .......(.......
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_29: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (46 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_04_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   4; lo comparten tambien los hoyo.tramo 11.0. Comprimido con 0xA8FB (46
+;   bytes fuente, 105 de salida).
 ;   0x7b25..0x7b53  (46 bytes)
-DATA_cuadro_golfista_29:
+DATA_vista_hoyo_04_cielo:
 	defb 02ch,000h,0ffh,017h,014h,008h,009h,00ah,009h,00ah,00bh,00ch,0ffh,00eh,014h,020h	; 7b25  ,.............. 
 	defb 00eh,00fh,021h,00dh,00eh,00fh,0ffh,004h,014h,010h,011h,012h,013h,0ffh,019h,014h	; 7b35  ..!.............
 	defb 0ffh,00ah,026h,025h,027h,015h,01ch,01dh,01ah,018h,019h,01ah,018h,01bh	; 7b45  ..&%'.........
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_30: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_04_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 4; lo
+;   comparten tambien los hoyo.tramo 11.1. Comprimido con 0xA8FB (163 bytes
+;   fuente, 294 de salida).
 ;   0x7b53..0x7bf6  (163 bytes)
-DATA_cuadro_golfista_30:
+DATA_vista_hoyo_04_tramo_1:
 	defb 0a1h,000h,0ffh,008h,028h,057h,083h,047h,048h,04ah,0c3h,034h,0ffh,006h,003h,0ffh	; 7b53  ....(W.GHJ.4....
 	defb 008h,029h,055h,066h,065h,030h,030h,09fh,035h,036h,038h,0ffh,004h,003h,0ffh,007h	; 7b63  .)Ufe00.568.....
 	defb 02ah,057h,061h,062h,063h,055h,0a2h,07dh,09ah,037h,039h,03ah,03dh,040h,003h,0ffh	; 7b73  *WabcU.}.79:=@..
@@ -5235,11 +5377,12 @@ DATA_cuadro_golfista_30:
 	defb 003h,003h,002h	; 7bf3
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_31: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (149 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_04_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 4; lo
+;   comparten tambien los hoyo.tramo 11.2. Comprimido con 0xA8FB (149 bytes
+;   fuente, 294 de salida).
 ;   0x7bf6..0x7c8b  (149 bytes)
-DATA_cuadro_golfista_31:
+DATA_vista_hoyo_04_tramo_2:
 	defb 093h,000h,0ffh,006h,028h,057h,059h,05ah,06ch,04ah,02eh,02bh,07ch,003h,003h,036h	; 7bf6  ....(WYZlJ.+|..6
 	defb 038h,03ah,03dh,040h,0ffh,005h,028h,08bh,0abh,0ach,0a8h,0a9h,0aah,030h,07dh,02ch	; 7c06  8:=@..(......0},
 	defb 046h,02bh,037h,039h,03bh,03eh,041h,0ffh,005h,029h,08ah,051h,0ffh,008h,030h,07dh	; 7c16  F+79;>A..).Q..0}
@@ -5252,11 +5395,12 @@ DATA_cuadro_golfista_31:
 	defb 045h,0beh,0ffh,02ah,030h	; 7c86
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_32: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (158 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_04_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 4; lo
+;   comparten tambien los hoyo.tramo 11.3. Comprimido con 0xA8FB (158 bytes
+;   fuente, 294 de salida).
 ;   0x7c8b..0x7d29  (158 bytes)
-DATA_cuadro_golfista_32:
+DATA_vista_hoyo_04_tramo_3:
 	defb 09ch,000h,0ffh,004h,028h,057h,059h,059h,05ah,05ah,082h,0ffh,003h,030h,04ah,02eh	; 7c8b  ....(WYYZZ...0J.
 	defb 02bh,07ch,003h,003h,036h,038h,028h,081h,082h,030h,030h,06dh,06eh,003h,0adh,0aeh	; 7c9b  +|..68(..00mn...
 	defb 003h,06fh,070h,030h,030h,07dh,02ch,046h,02bh,037h,039h,028h,0ffh,004h,030h,071h	; 7cab  .op00},F+79(..0q
@@ -5269,11 +5413,12 @@ DATA_cuadro_golfista_32:
 	defb 0ffh,007h,02ah,080h,0ffh,00dh,030h,0ffh,006h,02ah,080h,0ffh,00eh,030h	; 7d1b  ..*...0..*...0
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_33: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (100 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_04_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 4; lo
+;   comparten tambien los hoyo.tramo 11.4. Comprimido con 0xA8FB (100 bytes
+;   fuente, 294 de salida).
 ;   0x7d29..0x7d8d  (100 bytes)
-DATA_cuadro_golfista_33:
+DATA_vista_hoyo_04_tramo_4:
 	defb 062h,000h,0ffh,004h,028h,057h,059h,059h,05ah,05ah,082h,0ffh,00bh,030h,028h,081h	; 7d29  b...(WYYZZ...0(.
 	defb 082h,0ffh,012h,030h,080h,0ffh,018h,030h,0b6h,0b1h,0afh,0ffh,007h,003h,074h,075h	; 7d39  ...0...0......tu
 	defb 0b5h,0ffh,007h,030h,06dh,0ffh,006h,003h,0b9h,0bah,0ffh,005h,003h,070h,0ffh,006h	; 7d49  ...0m........p..
@@ -5283,22 +5428,24 @@ DATA_cuadro_golfista_33:
 	defb 065h,0ffh,008h,030h	; 7d89
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_34: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (62 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_02_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   2; lo comparten tambien los hoyo.tramo 4.5, 11.5, 14.0. Comprimido con
+;   0xA8FB (62 bytes fuente, 105 de salida).
 ;   0x7d8d..0x7dcb  (62 bytes)
-DATA_cuadro_golfista_34:
+DATA_vista_hoyo_02_cielo:
 	defb 03ch,000h,0ffh,01ah,014h,008h,00bh,00bh,00ch,0ffh,009h,014h,010h,013h,014h,012h	; 7d8d  <...............
 	defb 013h,010h,014h,014h,020h,00eh,00eh,00fh,0ffh,005h,014h,008h,009h,00ah,00bh,00ch	; 7d9d  .... ...........
 	defb 0ffh,010h,014h,020h,021h,00dh,00eh,00fh,014h,014h,019h,01ah,01dh,01eh,022h,023h	; 7dad  ... !........."#
 	defb 01ah,023h,024h,025h,0ffh,004h,026h,025h,027h,015h,01ch,023h,019h,01ah	; 7dbd  .#$%..&%'..#..
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_35: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (230 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_02_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 2; lo
+;   comparten tambien los hoyo.tramo 14.1. Comprimido con 0xA8FB (230 bytes
+;   fuente, 294 de salida).
 ;   0x7dcb..0x7eb1  (230 bytes)
-DATA_cuadro_golfista_35:
+DATA_vista_hoyo_02_tramo_1:
 	defb 0e4h,000h,0ffh,005h,003h,034h,0ffh,003h,003h,0cah,050h,04fh,05eh,05fh,060h,003h	; 7dcb  .....4....PO^_`.
 	defb 034h,0ffh,006h,003h,036h,038h,003h,035h,003h,0cah,050h,02ah,029h,02ah,028h,02ah	; 7ddb  4...68.5..P*)*(*
 	defb 05eh,05fh,035h,003h,036h,038h,003h,03dh,040h,037h,039h,003h,0cah,050h,029h,02ah	; 7deb  ^_5.68.=@79..P)*
@@ -5316,11 +5463,12 @@ DATA_cuadro_golfista_35:
 	defb 00ch,003h,007h,003h,003h,002h	; 7eab
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_36: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (184 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_02_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 2; lo
+;   comparten tambien los hoyo.tramo 14.2. Comprimido con 0xA8FB (184 bytes
+;   fuente, 294 de salida).
 ;   0x7eb1..0x7f69  (184 bytes)
-DATA_cuadro_golfista_36:
+DATA_vista_hoyo_02_tramo_2:
 	defb 0b6h,000h,03ah,03dh,040h,036h,038h,0ffh,00ch,003h,036h,038h,03ah,03dh,03bh,03eh	; 7eb1  ..:=@68...68:=;>
 	defb 041h,037h,039h,08dh,08eh,0ffh,005h,090h,08eh,08fh,060h,003h,003h,037h,039h,03bh	; 7ec1  A79.......`..79;
 	defb 03eh,03ch,03fh,042h,0cah,050h,02ah,02ah,029h,0ffh,003h,02ah,028h,029h,0ffh,003h	; 7ed1  ><?B.P**)..*()..
@@ -5335,11 +5483,12 @@ DATA_cuadro_golfista_36:
 	defb 0ffh,003h,045h,0c4h,0bch,0ffh,01dh,030h	; 7f61  ..E....0
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_37: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (178 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_02_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 2; lo
+;   comparten tambien los hoyo.tramo 14.3. Comprimido con 0xA8FB (178 bytes
+;   fuente, 294 de salida).
 ;   0x7f69..0x801b  (178 bytes)
-DATA_cuadro_golfista_37:
+DATA_vista_hoyo_02_tramo_3:
 	defb 0b0h,000h,03dh,040h,036h,038h,0ffh,006h,003h,032h,02bh,0a0h,0ffh,006h,003h,036h	; 7f69  ..=@68...2+....6
 	defb 038h,03eh,041h,037h,039h,0ffh,005h,003h,09dh,0abh,0ach,030h,02fh,0ffh,005h,003h	; 7f79  8>A79......0/...
 	defb 037h,039h,03fh,042h,003h,08eh,08eh,090h,04eh,0a1h,04fh,029h,02ah,02ah,028h,055h	; 7f89  79?B....N.O)**(U
@@ -5354,22 +5503,24 @@ DATA_cuadro_golfista_37:
 	defb 045h,030h	; 8019
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_38: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (51 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_10_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   10; lo comparten tambien los hoyo.tramo 17.0. Comprimido con 0xA8FB (51
+;   bytes fuente, 105 de salida).
 ;   0x801b..0x804e  (51 bytes)
-DATA_cuadro_golfista_38:
+DATA_vista_hoyo_10_cielo:
 	defb 031h,000h,0ffh,016h,014h,008h,00bh,00ch,00bh,00ch,014h,014h,010h,013h,0ffh,00ch	; 801b  1...............
 	defb 014h,020h,00eh,00fh,00eh,00fh,0ffh,008h,014h,010h,013h,0ffh,01ah,014h,026h,027h	; 802b  . ............&'
 	defb 022h,01dh,018h,01ah,017h,018h,01ah,01dh,01eh,01fh,019h,01ah,018h,01bh,09ah,015h	; 803b  "...............
 	defb 016h,017h,01dh	; 804b
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_39: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (200 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_10_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 10; lo
+;   comparten tambien los hoyo.tramo 17.1. Comprimido con 0xA8FB (200 bytes
+;   fuente, 294 de salida).
 ;   0x804e..0x8116  (200 bytes)
-DATA_cuadro_golfista_39:
+DATA_vista_hoyo_10_tramo_1:
 	defb 0c6h,000h,029h,05eh,05fh,032h,049h,046h,02bh,003h,003h,0cdh,0abh,0a4h,0a5h,07ch	; 804e  ..)^_2IF+......|
 	defb 034h,0ffh,006h,003h,029h,02ah,096h,030h,047h,048h,030h,09ch,0a0h,0ffh,004h,030h	; 805e  4...)*.0GH0....0
 	defb 02fh,035h,034h,0ffh,005h,003h,02ah,029h,028h,067h,066h,065h,030h,0cch,0ffh,004h	; 806e  /54...*)(gfe0...
@@ -5385,11 +5536,12 @@ DATA_cuadro_golfista_39:
 	defb 007h,0ffh,00ch,003h,007h,003h,003h,002h	; 810e  ........
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_40: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (198 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_10_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 10; lo
+;   comparten tambien los hoyo.tramo 17.2. Comprimido con 0xA8FB (198 bytes
+;   fuente, 294 de salida).
 ;   0x8116..0x81dc  (198 bytes)
-DATA_cuadro_golfista_40:
+DATA_vista_hoyo_10_tramo_2:
 	defb 0c4h,000h,0aeh,003h,034h,034h,0ffh,003h,003h,0cah,0edh,0edh,0ffh,003h,003h,0cah	; 8116  ....44..........
 	defb 0cdh,0abh,0a4h,07ch,003h,036h,038h,05fh,003h,035h,035h,032h,049h,0e4h,033h,06ch	; 8126  ...|.68_.552I.3l
 	defb 0b8h,04ah,02eh,033h,06ch,07eh,030h,07dh,02dh,09dh,037h,039h,02ah,05eh,05fh,09eh	; 8136  .J.3l~0}-.79*^_.
@@ -5405,11 +5557,12 @@ DATA_cuadro_golfista_40:
 	defb 005h,085h,086h,0ffh,00bh,030h	; 81d6
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_41: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (149 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_10_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 10; lo
+;   comparten tambien los hoyo.tramo 17.3. Comprimido con 0xA8FB (149 bytes
+;   fuente, 294 de salida).
 ;   0x81dc..0x8271  (149 bytes)
-DATA_cuadro_golfista_41:
+DATA_vista_hoyo_10_tramo_3:
 	defb 093h,000h,0ffh,005h,003h,0ffh,003h,0edh,0ffh,00ah,003h,0edh,0edh,003h,031h,049h	; 81dc  ..............1I
 	defb 033h,06ch,0b8h,0ffh,003h,07fh,04ah,02eh,0ffh,003h,0e4h,046h,0a4h,0abh,049h,033h	; 81ec  3l....J....F..I3
 	defb 06ch,0b8h,04ah,030h,030h,06dh,06eh,07ah,0ffh,004h,003h,06fh,070h,0ffh,00ch,030h	; 81fc  l.J00mnz...op..0
@@ -5422,11 +5575,12 @@ DATA_cuadro_golfista_41:
 	defb 0ffh,004h,045h,0dch,0d4h	; 826c
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_42: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (145 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_10_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 10; lo
+;   comparten tambien los hoyo.tramo 17.4. Comprimido con 0xA8FB (145 bytes
+;   fuente, 294 de salida).
 ;   0x8271..0x8302  (145 bytes)
-DATA_cuadro_golfista_42:
+DATA_vista_hoyo_10_tramo_4:
 	defb 08fh,000h,0ffh,008h,003h,0edh,0edh,0ffh,00ch,003h,0cah,0cdh,0abh,049h,033h,06ch	; 8271  .............I3l
 	defb 0b8h,07fh,07fh,04ah,02eh,046h,0a4h,0a5h,07ch,0ffh,003h,003h,0cah,0abh,032h,033h	; 8281  ...J.F..|.....23
 	defb 07eh,0ffh,00bh,030h,07dh,04ah,02eh,0e4h,0e4h,09fh,07eh,0ffh,003h,030h,0c7h,0c3h	; 8291  ~..0}J....~..0..
@@ -5439,11 +5593,12 @@ DATA_cuadro_golfista_42:
 	defb 030h	; 8301
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_43: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (153 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_10_tramo_5: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 10; lo
+;   comparten tambien los hoyo.tramo 17.5. Comprimido con 0xA8FB (153 bytes
+;   fuente, 294 de salida).
 ;   0x8302..0x839b  (153 bytes)
-DATA_cuadro_golfista_43:
+DATA_vista_hoyo_10_tramo_5:
 	defb 097h,000h,003h,003h,034h,003h,0a0h,0b6h,0b7h,092h,062h,0ffh,004h,059h,063h,0ffh	; 8302  ....4.....b..Yc.
 	defb 007h,028h,036h,038h,035h,003h,0a9h,0a9h,0a6h,0ffh,007h,030h,0f3h,0ffh,006h,028h	; 8312  .(685......0...(
 	defb 037h,039h,0cah,032h,049h,0e4h,0a0h,0ffh,004h,030h,051h,052h,053h,056h,0ffh,006h	; 8322  79.2I....0QRSV..
@@ -5456,22 +5611,24 @@ DATA_cuadro_golfista_43:
 	defb 005h,003h,072h,07bh,078h,077h,0ffh,043h,030h	; 8392  ..r{xw.C0
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_44: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (53 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_06_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   6; lo comparten tambien los hoyo.tramo 16.0. Comprimido con 0xA8FB (53
+;   bytes fuente, 105 de salida).
 ;   0x839b..0x83d0  (53 bytes)
-DATA_cuadro_golfista_44:
+DATA_vista_hoyo_06_cielo:
 	defb 033h,000h,0ffh,018h,014h,010h,011h,013h,0ffh,005h,014h,008h,009h,00ah,00bh,00bh	; 839b  3...............
 	defb 00ch,014h,010h,013h,0ffh,00ch,014h,020h,021h,00dh,00eh,00eh,00fh,0ffh,019h,014h	; 83ab  ....... !.......
 	defb 015h,016h,017h,018h,01ah,01dh,01eh,01fh,019h,01ah,017h,018h,01fh,01ah,018h,024h	; 83bb  ...............$
 	defb 025h,025h,0ffh,003h,026h	; 83cb
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_45: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (163 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_06_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 6; lo
+;   comparten tambien los hoyo.tramo 16.1. Comprimido con 0xA8FB (163 bytes
+;   fuente, 294 de salida).
 ;   0x83d0..0x8473  (163 bytes)
-DATA_cuadro_golfista_45:
+DATA_vista_hoyo_06_tramo_1:
 	defb 0a1h,000h,003h,003h,034h,003h,032h,049h,0a0h,0afh,0aeh,07fh,07fh,04ah,02eh,046h	; 83d0  ....4.2I.....J.F
 	defb 0a4h,0a5h,0d9h,07ch,034h,003h,003h,036h,038h,035h,0cbh,0d2h,047h,048h,030h,0dbh	; 83e0  ...|4..685..GH0.
 	defb 0cfh,0a8h,0d2h,0ffh,003h,030h,07dh,07fh,02fh,035h,036h,038h,037h,039h,003h,0d1h	; 83f0  .....0}./56879..
@@ -5485,11 +5642,12 @@ DATA_cuadro_golfista_45:
 	defb 003h,003h,002h	; 8470
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_46: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (216 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_06_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 6; lo
+;   comparten tambien los hoyo.tramo 16.2. Comprimido con 0xA8FB (216 bytes
+;   fuente, 294 de salida).
 ;   0x8473..0x854b  (216 bytes)
-DATA_cuadro_golfista_46:
+DATA_vista_hoyo_06_tramo_2:
 	defb 0d6h,000h,003h,036h,038h,034h,003h,0c2h,0c3h,0adh,049h,0ceh,0ceh,046h,0a4h,07ch	; 8473  ...684....I..F.|
 	defb 0ffh,004h,003h,036h,038h,003h,003h,037h,039h,035h,031h,033h,07eh,030h,030h,043h	; 8483  ...68..79513~00C
 	defb 04bh,044h,07dh,04ah,02eh,046h,0a4h,0a5h,037h,039h,003h,003h,0c2h,031h,033h,07eh	; 8493  KD}J.F..79...13~
@@ -5506,11 +5664,12 @@ DATA_cuadro_golfista_46:
 	defb 007h,030h,033h,06ch,07eh,0ffh,012h,030h	; 8543  .03l~..0
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_47: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (126 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_06_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 6; lo
+;   comparten tambien los hoyo.tramo 16.3. Comprimido con 0xA8FB (126 bytes
+;   fuente, 294 de salida).
 ;   0x854b..0x85c9  (126 bytes)
-DATA_cuadro_golfista_47:
+DATA_vista_hoyo_06_tramo_3:
 	defb 07ch,000h,0ffh,005h,003h,0c2h,0c3h,0adh,049h,0ffh,004h,0ceh,046h,0a4h,0a5h,07ch	; 854b  |.......I...F..|
 	defb 0ffh,006h,003h,0c2h,032h,049h,033h,07eh,0ffh,008h,030h,07dh,02ch,046h,0a4h,0a5h	; 855b  ....2I3~..0},F..
 	defb 07ch,031h,049h,033h,07eh,0ffh,008h,030h,0b3h,0b4h,0b5h,0b6h,0cdh,089h,030h,07dh	; 856b  |1I3~..0......0}
@@ -5521,11 +5680,12 @@ DATA_cuadro_golfista_47:
 	defb 0d2h,0ffh,00fh,030h,0ffh,005h,003h,0a9h,0a7h,0a8h,0d2h,0ffh,00ch,030h	; 85bb  ...0.........0
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_48: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (179 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_06_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 6; lo
+;   comparten tambien los hoyo.tramo 16.4. Comprimido con 0xA8FB (179 bytes
+;   fuente, 294 de salida).
 ;   0x85c9..0x867c  (179 bytes)
-DATA_cuadro_golfista_48:
+DATA_vista_hoyo_06_tramo_4:
 	defb 0b1h,000h,003h,003h,036h,038h,003h,034h,0ffh,003h,003h,0c2h,0c3h,0adh,049h,0ceh	; 85c9  ....68.4......I.
 	defb 0ceh,02bh,07ch,034h,003h,034h,003h,03dh,040h,037h,039h,003h,035h,032h,049h,033h	; 85d9  .+|4.4.=@79.52I3
 	defb 06ch,07eh,030h,030h,0b1h,0b2h,030h,0ach,035h,003h,035h,003h,03eh,041h,003h,0c2h	; 85e9  l~00..0.5.5.>A..
@@ -5540,22 +5700,22 @@ DATA_cuadro_golfista_48:
 	defb 0ffh,036h,030h	; 8679
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_49: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (53 bytes fuente, 105 de
-;   salida)
+; DATOS vista_hoyo_18_cielo: Mapa de indices de la VISTA en perspectiva: las
+;   CINCO filas de arriba (21x5=105 bytes), el cielo y el horizonte del hoyo
+;   18. Comprimido con 0xA8FB (53 bytes fuente, 105 de salida).
 ;   0x867c..0x86b1  (53 bytes)
-DATA_cuadro_golfista_49:
+DATA_vista_hoyo_18_cielo:
 	defb 033h,000h,0ffh,018h,014h,010h,011h,012h,013h,0ffh,004h,014h,008h,00bh,009h,00ah	; 867c  3...............
 	defb 00bh,00ch,0ffh,00ah,014h,010h,013h,0ffh,003h,014h,020h,00eh,021h,00dh,00eh,00fh	; 868c  .......... .!...
 	defb 0ffh,019h,014h,09bh,022h,023h,01bh,09bh,022h,017h,019h,01ah,018h,01fh,024h,0ffh	; 869c  ...."#..".....$.
 	defb 003h,025h,0ffh,006h,026h	; 86ac
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_50: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (238 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_18_tramo_1: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 1 del hoyo 18.
+;   Comprimido con 0xA8FB (238 bytes fuente, 294 de salida).
 ;   0x86b1..0x879f  (238 bytes)
-DATA_cuadro_golfista_50:
+DATA_vista_hoyo_18_tramo_1:
 	defb 0ech,000h,0ffh,009h,003h,034h,0ffh,006h,003h,034h,0ffh,007h,003h,036h,038h,036h	; 86b1  .....4...4...686
 	defb 038h,003h,034h,035h,003h,08dh,08eh,08fh,060h,003h,035h,0ffh,004h,003h,03ah,03dh	; 86c1  8.45....`.5...:=
 	defb 040h,037h,039h,037h,039h,003h,035h,0c2h,050h,08bh,047h,048h,0c7h,0c3h,036h,038h	; 86d1  @7979.5.P.GH..68
@@ -5573,11 +5733,11 @@ DATA_cuadro_golfista_50:
 	defb 005h,030h,000h,001h,003h,003h,007h,0ffh,00ch,003h,007h,003h,003h,002h	; 8791  .0............
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_51: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (250 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_18_tramo_2: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 2 del hoyo 18.
+;   Comprimido con 0xA8FB (250 bytes fuente, 294 de salida).
 ;   0x879f..0x8899  (250 bytes)
-DATA_cuadro_golfista_51:
+DATA_vista_hoyo_18_tramo_2:
 	defb 0f8h,000h,0ffh,003h,003h,034h,0ffh,005h,003h,08dh,08eh,0ffh,003h,090h,08eh,08fh	; 879f  .....4..........
 	defb 003h,003h,034h,0ffh,003h,003h,036h,038h,035h,0c2h,04dh,04dh,04eh,04fh,029h,097h	; 87af  ..4...685.MMNO).
 	defb 0ffh,004h,0abh,059h,058h,0c3h,035h,036h,038h,003h,037h,039h,003h,0c9h,02ah,029h	; 87bf  ...YX.568.79..*)
@@ -5596,11 +5756,11 @@ DATA_cuadro_golfista_51:
 	defb 0bdh,0beh,085h,0a0h,0ffh,008h,030h,0c5h,029h,02ah	; 888f  ......0.)*
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_52: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (241 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_18_tramo_3: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 3 del hoyo 18.
+;   Comprimido con 0xA8FB (241 bytes fuente, 294 de salida).
 ;   0x8899..0x898a  (241 bytes)
-DATA_cuadro_golfista_52:
+DATA_vista_hoyo_18_tramo_3:
 	defb 0efh,000h,0ffh,003h,003h,034h,0ffh,005h,003h,0ffh,006h,08eh,08fh,060h,0ffh,003h	; 8899  .....4.......`..
 	defb 003h,036h,003h,036h,038h,035h,04ch,04dh,04eh,04fh,028h,057h,0abh,0ffh,005h,05ah	; 88a9  .6.685LMNO(W...Z
 	defb 093h,028h,05eh,05fh,037h,003h,037h,039h,003h,0c9h,02ah,029h,081h,082h,030h,06dh	; 88b9  .(^_7.79..*)..0m
@@ -5619,11 +5779,11 @@ DATA_cuadro_golfista_52:
 	defb 029h	; 8989
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_53: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (217 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_18_tramo_4: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 4 del hoyo 18.
+;   Comprimido con 0xA8FB (217 bytes fuente, 294 de salida).
 ;   0x898a..0x8a63  (217 bytes)
-DATA_cuadro_golfista_53:
+DATA_vista_hoyo_18_tramo_4:
 	defb 0d7h,000h,0ffh,017h,003h,08dh,08eh,090h,04dh,04eh,04fh,02ah,029h,029h,02ah,02ah	; 898a  ........MNO*))**
 	defb 05eh,0ffh,003h,08eh,05fh,060h,003h,003h,04ch,050h,02ah,029h,029h,097h,0abh,05ah	; 899a  ^..._`..LP*))..Z
 	defb 061h,082h,0ffh,003h,030h,092h,0bfh,0abh,093h,02ah,02ah,05eh,05fh,02ah,028h,02ah	; 89aa  a...0....**^_*(*
@@ -5640,11 +5800,11 @@ DATA_cuadro_golfista_53:
 	defb 00eh,030h,02ah,02ah,029h,080h,0ffh,011h,030h	; 8a5a  .0**)...0
 
 ; ----------------------------------------------------------------------
-; DATOS cuadro_golfista_54: Sprite del golfista comprimido con el formato de
-;   0xA8FB, decodificado y verificado en Python (251 bytes fuente, 294 de
-;   salida)
+; DATOS vista_hoyo_18_tramo_5: Mapa de indices de la VISTA en perspectiva: las
+;   CATORCE filas de suelo (21x14=294 bytes) del tramo 5 del hoyo 18.
+;   Comprimido con 0xA8FB (251 bytes fuente, 294 de salida).
 ;   0x8a63..0x8b5e  (251 bytes)
-DATA_cuadro_golfista_54:
+DATA_vista_hoyo_18_tramo_5:
 	defb 0f9h,000h,003h,003h,036h,038h,034h,0ffh,003h,003h,08dh,08fh,032h,02bh,08dh,08fh	; 8a63  ....684.....2+..
 	defb 003h,003h,034h,036h,038h,003h,003h,03dh,040h,037h,039h,035h,0c2h,04dh,04fh,02ah	; 8a73  ..468..=@795.MO*
 	defb 0cfh,0ach,0adh,0c6h,02ah,05eh,05fh,035h,037h,039h,03ah,03dh,03eh,041h,003h,0c2h	; 8a83  ....*^_579:=>A..
@@ -6945,11 +7105,13 @@ DATA_plano_hoyo_14:
 	defb 0ffh,003h,005h,017h,018h,01ah,01bh,016h,015h,0ffh,00ch,005h	; b4a2  ............
 
 ; ----------------------------------------------------------------------
-; DATOS plano_hoyo_15: Sprite comprimido con el formato de 0xA8FB, uno de tres
-;   elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en
-;   Python (713 bytes fuente, 1120 de salida)
+; DATOS golfista_palos_9_y_mas: EL GOLFISTA para los palos por encima del 8:
+;   35 piezas de sprite de 16x16 (1120 bytes), copiadas a VRAM 0x3B00 desde
+;   0x4C13. Cada fotograma del swing lo componen hasta NUEVE de estas piezas
+;   superpuestas, cada una con su color; las posiciones salen de
+;   datos_del_golfista (0x5053) y el patron de indice*4+0x60
 ;   0xb4ae..0xb777  (713 bytes)
-DATA_plano_hoyo_15:
+DATA_golfista_palos_9_y_mas:
 	defb 0c7h,002h,0ffh,007h,000h,003h,007h,00fh,01fh,01fh,019h,018h,018h,00ch,0ffh,007h	; b4ae  ................
 	defb 000h,0e0h,0f8h,0bch,08ch,09eh,02eh,007h,003h,016h,0ffh,005h,000h,008h,00eh,00ch	; b4be  ................
 	defb 0dah,0ffh,001h,0ffh,0f9h,079h,07fh,03fh,01eh,008h,0ffh,00ah,000h,080h,000h,080h	; b4ce  .....y.?........
@@ -6997,11 +7159,11 @@ DATA_plano_hoyo_15:
 	defb 010h,0ffh,003h,008h,01fh,01fh,0ffh,010h,000h	; b76e  .........
 
 ; ----------------------------------------------------------------------
-; DATOS plano_hoyo_16: Sprite comprimido con el formato de 0xA8FB, uno de tres
-;   elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en
-;   Python (633 bytes fuente, 928 de salida)
+; DATOS golfista_palo_8: EL GOLFISTA para el palo 8: 29 piezas de sprite de
+;   16x16 (928 bytes). Ocho piezas por fotograma, posiciones en 0x50BC y
+;   listas en 0x4FFF
 ;   0xb777..0xb9f0  (633 bytes)
-DATA_plano_hoyo_16:
+DATA_golfista_palo_8:
 	defb 077h,002h,0ffh,007h,000h,003h,007h,01eh,01eh,014h,010h,010h,008h,0ffh,008h,000h	; b777  w...............
 	defb 0c0h,0f0h,0f0h,078h,0b8h,01ch,00ch,058h,0ffh,010h,000h,0f0h,0ffh,00dh,000h,0c0h	; b787  ...x...X........
 	defb 080h,0ffh,00ah,000h,001h,001h,00bh,00fh,00fh,007h,00fh,0ffh,00ah,000h,080h,040h	; b797  ...............@
@@ -7044,11 +7206,11 @@ DATA_plano_hoyo_16:
 	defb 003h,040h,0ffh,004h,020h,078h,0ffh,015h,000h	; b9e7  .@.. x...
 
 ; ----------------------------------------------------------------------
-; DATOS plano_hoyo_17: Sprite comprimido con el formato de 0xA8FB, uno de tres
-;   elegidos por (0xE114) en 0x4BF8/0x53A1, decodificado y verificado en
-;   Python (406 bytes fuente, 704 de salida)
+; DATOS golfista_palos_1_a_7: EL GOLFISTA para los palos del 1 al 7, el mas
+;   lejano de la camara: 22 piezas de sprite de 16x16 (704 bytes). Seis piezas
+;   por fotograma, posiciones en 0x5113 y listas en 0x502F
 ;   0xb9f0..0xbb86  (406 bytes)
-DATA_plano_hoyo_17:
+DATA_golfista_palos_1_a_7:
 	defb 094h,001h,0ffh,00ch,000h,001h,002h,002h,003h,0ffh,00bh,000h,0f0h,0d8h,098h,008h	; b9f0  ................
 	defb 028h,000h,001h,001h,0ffh,007h,000h,001h,0ffh,005h,000h,020h,060h,0f0h,0d0h,0f0h	; ba00  (.......... `...
 	defb 040h,0ffh,004h,000h,0c0h,0e0h,060h,030h,038h,030h,0ffh,010h,000h,010h,008h,008h	; ba10  @.....`080......

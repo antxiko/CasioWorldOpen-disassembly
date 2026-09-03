@@ -82,13 +82,13 @@ footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
 .galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
 audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 </style>
-<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html" style=color:var(--tinta)>The code</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html">In the emulator</a><a href="OPEN-QUESTIONS.html">Open questions</a><a href="es/EL-CODIGO.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
+<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html" style=color:var(--tinta)>The code</a><a href="THE-3D-VIEW.html">The 3D view</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html">In the emulator</a><a href="OPEN-QUESTIONS.html">Open questions</a><a href="es/EL-CODIGO.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
 <h1 id="the-code">The code</h1>
 <h2 id="one-decompressor-and-a-running-total">One decompressor and a running total</h2>
 <p><code>0xA8FB</code> is simple: a two-byte header says how many <b>source</b> bytes are left to consume, an 0xFF opens a run with its count and value, and any other byte is copied as it is.</p>
 <p>What is interesting is what <code>0xA8CB</code> does <b>after</b> decompressing: it puts a zero after every byte — turning the run into sixteen-bit values — and takes the running total of them all. What comes out is not a picture: it is a list of tile codes.</p>
 <h2 id="and-on-top-indirection">And on top, indirection</h2>
-<p>The hole plans, the terrain views and the golfer&#x27;s frames store <b>indices</b> into that list, one byte per cell. <code>0x5B61</code> resolves them: it enters the list with <code>add hl,bc</code> twice — sixteen-bit indexing, because the pattern table has 570 entries — and hands the code to <code>0x5E66</code>, which copies the 8×8 pattern to VRAM.</p>
+<p>The hole plans and the eighty perspective-view maps store <b>indices</b> into that list, one byte per cell. <code>0x5B61</code> resolves them: it enters the list with <code>add hl,bc</code> twice — sixteen-bit indexing, because the pattern table has 570 entries — and hands the code to <code>0x5E66</code>, which copies the 8×8 pattern to VRAM.</p>
 <h2 id="the-mirror-inside-the-loop">The mirror, inside the loop</h2>
 <p><code>0x5E66</code> checks bit 7 of (0xE0A0) and, if it is set, flips the pattern bit by bit with <code>rlc</code> and <code>rra</code> before copying it. And the loops that walk the maps do the same: they advance the pointer and then run backwards. With that, half the course is drawn without storing one more byte.</p>
 <h2 id="dispatch-by-bits">Dispatch by bits</h2>

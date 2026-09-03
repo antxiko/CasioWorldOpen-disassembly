@@ -12,11 +12,14 @@ and out of them come the ten layouts and the eight mirrored pairs.
 What is not settled is **what each of those three attribute bytes says**. Their
 range looks like coordinates within the hole, but that is not confirmed.
 
-## Terrain views and golfer frames, out of context
+## ~~Terrain views and golfer frames~~ — closed
 
-They decode and their counts add up, but they are index maps over an accumulated
-list that depends on the terrain of the moment. Drawing them on their own means
-nothing, and drawing them in place needs the whole game state built up.
+This was open and no longer is. The "golfer frames" were not the golfer's: they
+are the **eighty perspective-view maps**, 21×19 each, and the golfer is three
+separate sets of sprite pieces. The accumulated list they are read against is
+built in two consecutive passes at 0xE800, and against the emulator's RAM it
+comes out without a single differing byte. It is all written up in
+[the 3D view](THE-3D-VIEW.html).
 
 ## The chained blocks at 0x9D2E
 

@@ -19,12 +19,13 @@ from estilo_web import ESTILO  # noqa: E402
 
 
 # Un menu por idioma. La web se publica en ingles en la raiz de docs/ y en
-# castellano bajo docs/es/. Son las siete paginas del contrato por idioma,
+# castellano bajo docs/es/. Son las ocho paginas del contrato por idioma,
 # mas la comparativa de las dos compilaciones y la portada.
 NAV_EN = [("index.html", "Home"), ("GETTING-STARTED.html", "Start"),
           ("THE-GAME.html", "The game"),
           ("THE-CARTRIDGE.html", "The cartridge"),
           ("THE-CODE.html", "The code"),
+          ("THE-3D-VIEW.html", "The 3D view"),
           ("FINDINGS.html", "Findings"),
           ("IN-THE-EMULATOR.html", "In the emulator"),
           ("OPEN-QUESTIONS.html", "Open questions")]
@@ -32,6 +33,7 @@ NAV_ES = [("index.html", "Portada"), ("EMPEZAR.html", "Empezar"),
           ("EL-JUEGO.html", "El juego"),
           ("EL-CARTUCHO.html", "El cartucho"),
           ("EL-CODIGO.html", "El código"),
+          ("LA-VISTA-3D.html", "La vista 3D"),
           ("HALLAZGOS.html", "Hallazgos"),
           ("EN-EL-EMULADOR.html", "En el emulador"),
           ("PREGUNTAS-ABIERTAS.html", "Preguntas abiertas")]
@@ -42,6 +44,7 @@ _PAREJAS = [("GETTING-STARTED.html", "EMPEZAR.html"),
             ("THE-GAME.html", "EL-JUEGO.html"),
             ("THE-CARTRIDGE.html", "EL-CARTUCHO.html"),
             ("THE-CODE.html", "EL-CODIGO.html"),
+            ("THE-3D-VIEW.html", "LA-VISTA-3D.html"),
             ("FINDINGS.html", "HALLAZGOS.html"),
             ("IN-THE-EMULATOR.html", "EN-EL-EMULADOR.html"),
             ("OPEN-QUESTIONS.html", "PREGUNTAS-ABIERTAS.html")]

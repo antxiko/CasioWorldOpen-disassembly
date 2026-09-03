@@ -1,0 +1,114 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La vista en perspectiva — Casio World Open (Casio, 1985)</title>
+<style>
+:root{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;--linea:#23262e;
+  --rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+@media (prefers-color-scheme:light){:root{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;
+  --panel:#f7f6f2;--linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}}
+:root[data-theme="dark"]{--tinta:#cfd0d4;--suave:#83868f;--fondo:#000;--panel:#0c0e13;
+  --linea:#23262e;--rojo:#ff897d;--cyan:#65dbef;--verde:#3eb849;--oro:#ded087}
+:root[data-theme="light"]{--tinta:#191a1e;--suave:#5a5d66;--fondo:#e9e7e1;--panel:#f7f6f2;
+  --linea:#d0cdc5;--rojo:#b23f34;--cyan:#1c6b7c;--verde:#2b7734;--oro:#8a7420}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);padding:0 1.25rem 6rem;
+  font:15px/1.7 ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.w{max-width:1120px;margin:0 auto}
+.n{max-width:68ch}
+h1,h2,h3,h4{font-weight:400;text-wrap:balance}
+a{color:var(--cyan)}
+img{image-rendering:pixelated;max-width:100%;height:auto;display:block}
+header.top{display:flex;flex-direction:column;align-items:center;gap:1.5rem;
+  padding:4rem 0 2rem;text-align:center}
+header.top img{width:min(100%,642px)}
+.claim{max-width:60ch;color:var(--suave);font-size:1.05rem}
+.claim b{color:var(--tinta);font-weight:400}
+.ficha{display:flex;flex-wrap:wrap;justify-content:center;gap:0 1.5rem;width:100%;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--suave);
+  border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);padding:.85rem 0}
+.ficha b{color:var(--rojo);font-weight:400}
+nav{display:flex;flex-wrap:wrap;gap:1.25rem;justify-content:center;padding:1.25rem 0;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+nav a{color:var(--suave);text-decoration:none;border-bottom:1px solid transparent}
+nav a:hover,nav a:focus{color:var(--tinta);border-bottom-color:var(--rojo)}
+nav.docs{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);
+  margin-bottom:1rem}
+section{margin-top:4.5rem;scroll-margin-top:1rem}
+section>h2{font-size:1rem;letter-spacing:.1em;text-transform:uppercase;
+  border-left:3px solid var(--rojo);padding-left:.9rem;margin:0 0 1.5rem}
+.cifras{display:grid;gap:1px;background:var(--linea);border:1px solid var(--linea);
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.cifra{background:var(--panel);padding:1.1rem}
+.cifra b{display:block;font-size:1.7rem;color:var(--oro);font-weight:400;
+  font-variant-numeric:tabular-nums;line-height:1.2}
+.cifra span{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--suave)}
+.hall{border-top:1px solid var(--linea);padding-top:1.75rem;margin-top:2.5rem}
+.hall:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.hall h3{margin:0 0 .75rem;font-size:1.15rem;color:var(--rojo)}
+.hall h4{color:var(--oro);margin:1.5rem 0 .5rem;font-size:.95rem}
+.hall p{margin:0 0 1rem}
+pre.asm{background:var(--panel);border-left:2px solid var(--verde);margin:1.25rem 0;
+  padding:1rem 1.1rem;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--tinta)}
+.par{display:grid;gap:1.25rem;grid-template-columns:1fr}
+@media(min-width:820px){.par{grid-template-columns:1fr 1fr}}
+.par figure{margin:0}
+table{border-collapse:collapse;width:100%;margin:1.25rem 0;font-size:13px;display:block;
+  overflow-x:auto}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--linea)}
+th{color:var(--suave);font-weight:400;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+td.num{font-variant-numeric:tabular-nums;color:var(--oro)}
+.nivel{margin-top:2rem}
+.nivel h3{margin:0 0 .9rem;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase}
+.nivel em{color:var(--cyan);font-style:normal}
+.sep{color:var(--suave);margin:0 .6rem}
+.rejilla{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.rejilla figure{margin:0;background:var(--panel);box-shadow:0 0 0 1px var(--linea)}
+.rejilla figcaption{display:flex;justify-content:space-between;padding:.45rem .65rem;
+  font-size:11px;color:var(--suave);border-top:1px solid var(--linea)}
+.dir{font-variant-numeric:tabular-nums;color:var(--verde)}
+footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
+  color:var(--suave);font-size:12px}
+
+/* Aviso de trabajo en curso: tiene que verse antes que las cifras, porque un
+   100% mal leido hace mas dano que no ponerlo. */
+.aviso{background:#3a2a10;border-left:3px solid var(--oro);margin:1.5rem auto;
+  padding:1rem 1.2rem;max-width:900px;border-radius:4px}
+.aviso p{margin:0;color:var(--tinta);font-size:15px;line-height:1.65}
+.galeria{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:1.5rem;margin:1.5rem 0}
+.galeria figure{margin:0}
+.galeria img{width:100%;height:auto;image-rendering:pixelated;
+  border:1px solid var(--linea);border-radius:3px}
+.galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
+audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
+</style>
+<div class="w"><nav class="top"><a href="index.html">Portada</a><a href="EMPEZAR.html">Empezar</a><a href="EL-JUEGO.html">El juego</a><a href="EL-CARTUCHO.html">El cartucho</a><a href="EL-CODIGO.html">El código</a><a href="LA-VISTA-3D.html" style=color:var(--tinta)>La vista 3D</a><a href="HALLAZGOS.html">Hallazgos</a><a href="EN-EL-EMULADOR.html">En el emulador</a><a href="PREGUNTAS-ABIERTAS.html">Preguntas abiertas</a><a href="../THE-3D-VIEW.html" style="margin-left:auto;color:var(--oro)">English</a></nav>
+<h1 id="la-vista-en-perspectiva">La vista en perspectiva</h1>
+<p>Es lo mejor del cartucho, y conviene decir primero lo que <b>no</b> es: la vista del campo no se calcula. No hay proyección, ni trigonometría, ni un solo <code>call</code> a las tablas que el juego usa para la física de la bola. La perspectiva <b>viene dibujada</b> en la ROM, hoyo por hoyo y tramo por tramo, y lo único que hace el Z80 es resolver dos indirecciones y copiar patrones de 8×8.</p>
+<p>Lo que sigue está comprobado contra la RAM y la VRAM del emulador, no deducido: <code>tools/omsx_vista.tcl</code> congela la máquina en el instante exacto en que se pinta una fila y vuelca los dos buffers.</p>
+<h2 id="los-ochenta-mapas">Los ochenta mapas</h2>
+<p>La tabla de 0x6A2B tiene noventa y ocho punteros repartidos en dieciocho grupos, uno por hoyo; <code>tabla_tramos_por_hoyo</code> (0x5E54) dice cuántos caen en cada grupo, entre cuatro y seis. El primero del grupo son <b>105 bytes</b> y los demás <b>294</b>.</p>
+<p>Esos números lo cuentan todo: 105 son 21×5 y 294 son 21×14. La vista es de <b>veintiuna columnas</b>, y se monta en dos trozos:</p>
+<table><tr><th>trozo</th><th>tamaño</th><th>qué es</th></tr><tr><td>el primero del grupo</td><td>21×5</td><td>el cielo y el horizonte, iguales para todo el hoyo</td></tr><tr><td>uno por tramo</td><td>21×14</td><td>el suelo, distinto en cada tramo</td></tr></table>
+<p><code>0x5B17</code> descomprime el primero en 0xEA00 y <code>0x5B27</code> el segundo en <b>0xEA69</b>, que es exactamente 0xEA00+105. Y 0xEA69+294 da 0xEB8F, que es justo donde <code>0x56B7</code> deja el puntero de scroll. Los dos trozos quedan <b>pegados</b>: 399 bytes seguidos, que son diecinueve filas de veintiuna columnas.</p>
+<p>Quitando repetidos, los dieciocho hoyos gastan <b>ochenta mapas de suelo</b>. Eso es todo el campo del juego.</p>
+<h2 id="tres-saltos-para-pintar-una-celda">Tres saltos para pintar una celda</h2>
+<p>Ninguno de esos 399 bytes es un dibujo. Cada uno es un <b>índice</b>, y hacen falta tres saltos para llegar al pixel:</p>
+<ol><li><b>El índice</b> entra en una lista de códigos de tile de dieciséis bits que vive en 0xE800. <code>0x5B61</code> la recorre con <code>add hl,bc</code> dos veces, que es indexado de dos bytes.</li><li><b>Esa lista</b> no está guardada tal cual: <code>0xA8CB</code> la fabrica al empezar el hoyo descomprimiendo dos bloques y haciendo la <b>suma acumulada</b> de sus bytes. Lo que el cartucho guarda son diferencias.</li><li><b>El código</b> que sale de ahí entra en <code>tabla_patrones_terreno</code> (0x8B5E), 570 patrones de 8×8 sin comprimir, y el color por otro camino distinto: la cadena de bloques de 0x9D2E, que <code>0x5EA5</code> recorre saltando de cabecera en cabecera.</li></ol>
+<p>La lista de 0xE800 se monta <b>en dos tandas seguidas</b>: primero los códigos comunes a todos los hoyos —129 ó 154, según cuál— y detrás los del hoyo. Que van pegadas no es una suposición: las direcciones de destino que el código escribe a mano, 0xE902 y 0xE934, son exactamente 0xE800 más el tamaño de la primera. Contra la RAM del emulador salen las dos <b>sin un byte de diferencia</b>.</p>
+<h2 id="el-acercarse-es-un-scroll-de-tabla-de-nombres">El acercarse es un scroll de tabla de nombres</h2>
+<p>No hay zoom. Lo que da la sensación de avanzar es que <code>0x5D3C</code> pinta <b>una fila nueva de veintiuna celdas</b> cada vez, y el puntero de 0xE0AE se mueve de veintiuno en veintiuno por el mapa: hacia atrás al acercarse (<code>0x5C3A</code> le suma −21) y hacia delante al alejarse. El resto de la pantalla se desplaza copiando franjas de la tabla de nombres de un sitio a otro de la VRAM.</p>
+<p>Y el tramo lo elige la bola: (0xE0B5) —el byte alto de (0xE0B4)— es en qué zona del hoyo se está, y es el que escoge cuál de los cuatro o seis mapas de suelo toca. Por eso el hoyo se ve por trozos y no de un tirón.</p>
+<h2 id="el-golfista-no-existe">El golfista no existe</h2>
+<p>En el cartucho no hay ningún dibujo de un golfista. Lo que hay son <b>piezas</b>, y cada postura se compone en el momento con hasta <b>nueve sprites de 16×16 superpuestos</b>, cada uno con su propio color, que es la única manera de sacar una figura de varios colores en un MSX1.</p>
+<p><code>0x4F8A</code> es el bucle que los coloca. Lee una lista de números de pieza y, por cada uno, va a una tabla de <b>tres bytes</b>: cuánto sube, cuánto se corre a la izquierda y de qué color va. El número de patrón no está guardado en ninguna parte —sale de una cuenta, <code>índice×4 + 0x60</code>, en <code>0x4FBA</code>—, y el cero cierra la lista antes de tiempo.</p>
+<p>Que la lectura es la correcta se ve al restar: con las ocho piezas del cuadro de reposo, (0xE099) menos el primer byte da <b>144</b> en las ocho, y (0xE098) menos el segundo da <b>80</b> en las ocho. Y el tercer byte coincide con el color del atributo pieza por pieza.</p>
+<h2 id="y-son-tres-golfistas-no-uno">Y son tres golfistas, no uno</h2>
+<p><code>0x4BF8</code> mira el palo en (0xE114) y elige uno de tres juegos completos:</p>
+<table><tr><th>palos</th><th>piezas</th><th>por fotograma</th><th>tamaño</th></tr><tr><td>1 a 7</td><td>22</td><td>6</td><td>32×48</td></tr><tr><td>el 8</td><td>29</td><td>8</td><td>45×56</td></tr><tr><td>9 y siguientes</td><td>35</td><td>9</td><td>52×64</td></tr></table>
+<p>Los tres tienen <b>seis fotogramas</b> de swing. Y el reparto no hay que adivinarlo: las tres tablas de posición miden 105, 87 y 66 bytes, que a tres bytes por pieza son 35, 29 y 22 —exactamente las que trae cada bloque de sprites—, y las tres listas miden 54, 48 y 36, que son seis fotogramas de nueve, ocho y seis.</p>
+<p>El golfista crece con el palo porque <b>crece la cámara</b>: con un hierro corto se está encima de la bola y con una madera se está lejos. Es la misma idea que la vista, resuelta de la misma manera: en vez de escalar nada, hay tres dibujos.</p>
+<h2 id="lo-que-costo-verlo">Lo que costó verlo</h2>
+<p>El listado publicado llamaba a los ochenta mapas «cuadros del golfista» y a los tres bloques de piezas «planos de hoyo 15, 16 y 17». Estaban al revés: lo que parecía el golfista era el campo, y los tres bloques que nadie sabía qué eran resultaron ser el golfista.</p>
+<p>Lo que lo destapó fue mirar dos números. Que 0xEA69 menos 0xEA00 diera 105 y que 105 y 294 fueran los dos múltiplos de 21 hizo sospechar que la anchura era 21 y no un sprite; y que el patrón saliera de <code>índice×4 + 0x60</code> explicó de golpe los patrones 96, 100, 104… que la tabla de atributos del emulador tenía puestos.</p>
+<footer><p><em>Casio World Open</em> lo publico Casio para MSX en 1985, en un cartucho de 16 KB. Todos los derechos sobre el juego siguen siendo de sus titulares. Este trabajo es de preservacion, estudio y documentacion, y la imagen del cartucho no se distribuye.</p></footer></div>

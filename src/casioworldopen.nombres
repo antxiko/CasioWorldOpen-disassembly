@@ -180,8 +180,8 @@ L 0x4AD7 guarda_el_sonido_y_repinta  Deja el parametro de sonido y redibuja el m
 L 0x4AF8 marca_dos_senales  Levanta los bits 2 y 4 y mira el 5
 L 0x4B09 avanza_de_hoyo  Sube (0xE0B4): en el 19 se acaba la ronda, y en el 10 se cambia de recorrido
 L 0x4B19 pide_la_tarea  Deja la tarea pedida en (0xE001)
-L 0x4B1C prepara_la_columna  Nueve celdas desde 0xE0EA con el valor 0xC2
-L 0x4B23 rellena_la_columna  Escribe de dos en dos: una columna entera de la VRAM
+L 0x4B1C esconde_al_golfista  Pone Y=0xC2 -fuera de pantalla- a los NUEVE sprites del golfista, escribiendo de cuatro en cuatro desde 0xE0EA porque cada atributo son cuatro bytes
+L 0x4B23 rellena_la_columna  El bucle: un sprite cada cuatro bytes
 L 0x4B2B cierra_la_ronda  El codigo 0xC0 marca el final de las dieciocho
 L 0x4B2D guarda_el_cierre  Deja el codigo y pone a cero la posicion
 L 0x4B38 cambia_de_recorrido  El codigo 0x80 marca el paso de la ida a la vuelta
@@ -346,7 +346,7 @@ L 0x59E1 lee_un_icono_de_viento  Toma tipo y valor de la lista de iconos
 L 0x59E8 coloca_los_iconos  Pone los ocho rumbos del viento en su sitio
 L 0x5A2C pinta_el_golpe  Escribe el marcador de golpe y su separador
 L 0x5A46 recorre_veintiuna_filas  Avanza a la vez el puntero de datos y el destino de VRAM
-L 0x5AFD anima_al_golfista  Monta el fondo y descomprime los dos cuadros del golfista que tocan
+L 0x5AFD monta_la_vista_del_campo  Monta la lista de codigos de tile y descomprime los DOS TROZOS de la vista en perspectiva: el cielo en 0xEA00 y el suelo del tramo en 0xEA69, seguidos
 L 0x5B2D lee_el_nombre_de_la_celda  Trae de la VRAM el patron que hay en esa posicion
 L 0x5B41 pinta_veintiuna_columnas  La fila de la vista en perspectiva; con el bit 7 de (0xE0A0) va espejada
 L 0x5B4D veintiuna  El ancho de la vista
@@ -354,9 +354,9 @@ L 0x5B4F pinta_una_celda_de_la_vista  Dibuja la celda y avanza o retrocede el pu
 L 0x5B5A avanza_el_puntero  El caso normal
 L 0x5B5B siguiente_columna  Avanza el destino y sigue
 L 0x5B61 tile_por_indice  El corazon del dibujado: el byte del mapa indexa la lista acumulada de 0xE800 -dos `add hl,bc`, o sea 16 bits- y saca el codigo de tile
-L 0x5B7B nueve_columnas_de_altura  Prepara el recorrido de las nueve columnas de altura
-L 0x5B81 mira_si_cabe  Si la fila se sale de pantalla, marca acarreo y usa el relleno
-L 0x5B8B guarda_la_altura  Deja el valor en la columna y reinicia la animacion si el hoyo es corto
+L 0x5B7B esconde_los_sprites_de_fuera  Recorre los NUEVE sprites del golfista en el buffer de atributos de 0xE0EA -cuatro bytes cada uno- y al que se sale de pantalla le pone Y=0xC2 para esconderlo
+L 0x5B81 mira_si_cabe  Si la Y del sprite mas ocho pasa de 0x98, ya no cabe: cuenta uno en C y la cambia por 0xC2, que es la Y de fuera de pantalla
+L 0x5B8B guarda_la_altura  Deja la Y en el atributo y salta al siguiente sprite, cuatro bytes mas alla
 L 0x5B9B monta_las_tres_franjas  Dibuja el terreno en las tres franjas de la pantalla
 L 0x5BCA franja_superior  Cada paso de la franja de arriba
 
@@ -390,7 +390,7 @@ L 0x5E11 plano_una_fila  Una fila del plano; con el espejo puesto, adelanta nuev
 L 0x5E1F diez_columnas  El ancho del plano
 L 0x5E21 plano_una_celda  Dibuja la celda y mueve el puntero en el sentido que toque
 L 0x5E2C plano_siguiente_fila  Avanza diez en los datos y treinta y dos en la pantalla
-L 0x5E40 cuadro_del_golfista  Suma los pasos de tabla_pasos_golfista y devuelve el indice de cuadro acumulado
+L 0x5E40 primer_tramo_del_hoyo  Suma los tramos de los hoyos anteriores y devuelve en C la primera entrada de tabla_vistas_del_campo de este hoyo, y en B cuantas tiene
 L 0x5E47 suma_los_pasos  El bucle de esa suma
 L 0x5E4F devuelve_el_cuadro  Deja el acumulado en C y el paso actual en B
 L 0x5E66 pinta_un_patron  Copia el patron de 8x8 de tabla_patrones_terreno a la VRAM, espejandolo si el bit 7 de (0xE0A0) esta puesto

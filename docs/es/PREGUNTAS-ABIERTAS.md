@@ -12,11 +12,14 @@ de ahí salen los diez trazados y las ocho parejas espejadas.
 Lo que no está cerrado es **qué dice cada uno de esos tres bytes de atributo**.
 Por su rango parecen coordenadas dentro del hoyo, pero no está comprobado.
 
-## Las vistas de terreno y los cuadros del golfista, fuera de contexto
+## ~~Las vistas de terreno y los cuadros del golfista~~ — cerrado
 
-Están decodificados y sus cuentas cuadran, pero son mapas de índices sobre una
-lista acumulada que depende del terreno del momento. Dibujarlos sueltos no tiene
-sentido, y dibujarlos en su sitio pide montar el estado completo de la partida.
+Estaba abierto y ya no lo está. Los «cuadros del golfista» no eran del
+golfista: son los **ochenta mapas de la vista en perspectiva**, de 21×19, y el
+golfista son tres juegos de piezas de sprite aparte. La lista acumulada sobre
+la que se leen se monta en dos tandas seguidas en 0xE800, y contra la RAM del
+emulador sale sin un byte de diferencia. Está contado en
+[la vista 3D](LA-VISTA-3D.html).
 
 ## La cadena de bloques de 0x9D2E
 

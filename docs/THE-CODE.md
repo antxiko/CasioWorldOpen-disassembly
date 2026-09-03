@@ -13,7 +13,7 @@ codes.
 
 ## And on top, indirection
 
-The hole plans, the terrain views and the golfer's frames store **indices** into
+The hole plans and the eighty perspective-view maps store **indices** into
 that list, one byte per cell. `0x5B61` resolves them: it enters the list with
 `add hl,bc` twice — sixteen-bit indexing, because the pattern table has 570
 entries — and hands the code to `0x5E66`, which copies the 8×8 pattern to VRAM.

@@ -82,14 +82,14 @@ footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--linea);
 .galeria figcaption{color:var(--suave);font-size:13px;margin-top:.5rem}
 audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 </style>
-<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html">The code</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html">In the emulator</a><a href="OPEN-QUESTIONS.html" style=color:var(--tinta)>Open questions</a><a href="es/PREGUNTAS-ABIERTAS.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
+<div class="w"><nav class="top"><a href="index.html">Home</a><a href="GETTING-STARTED.html">Start</a><a href="THE-GAME.html">The game</a><a href="THE-CARTRIDGE.html">The cartridge</a><a href="THE-CODE.html">The code</a><a href="THE-3D-VIEW.html">The 3D view</a><a href="FINDINGS.html">Findings</a><a href="IN-THE-EMULATOR.html">In the emulator</a><a href="OPEN-QUESTIONS.html" style=color:var(--tinta)>Open questions</a><a href="es/PREGUNTAS-ABIERTAS.html" style="margin-left:auto;color:var(--oro)">Castellano</a></nav>
 <h1 id="open-questions">Open questions</h1>
 <p>The whole binary is explained and what it draws is checked. What is left are loose ends.</p>
 <h2 id="the-internal-format-of-the-object-lists">The internal format of the object lists</h2>
 <p>The eighteen lists at 0x6299 decode cleanly — how many sub-blocks, how many objects per block, and four bytes per object: the cell and three of attribute — and out of them come the ten layouts and the eight mirrored pairs.</p>
 <p>What is not settled is <b>what each of those three attribute bytes says</b>. Their range looks like coordinates within the hole, but that is not confirmed.</p>
-<h2 id="terrain-views-and-golfer-frames-out-of-context">Terrain views and golfer frames, out of context</h2>
-<p>They decode and their counts add up, but they are index maps over an accumulated list that depends on the terrain of the moment. Drawing them on their own means nothing, and drawing them in place needs the whole game state built up.</p>
+<h2 id="terrain-views-and-golfer-frames-closed">~~Terrain views and golfer frames~~ — closed</h2>
+<p>This was open and no longer is. The &quot;golfer frames&quot; were not the golfer&#x27;s: they are the <b>eighty perspective-view maps</b>, 21×19 each, and the golfer is three separate sets of sprite pieces. The accumulated list they are read against is built in two consecutive passes at 0xE800, and against the emulator&#x27;s RAM it comes out without a single differing byte. It is all written up in <a href="THE-3D-VIEW.html">the 3D view</a>.</p>
 <h2 id="the-chained-blocks-at-0x9d2e">The chained blocks at 0x9D2E</h2>
 <p>Thirty-six blocks chained without a pointer table: each header says how far to jump to the next. Verified one by one, but with no identification of what each one draws.</p>
 <h2 id="the-four-spare-bytes-of-the-hole-record">The four spare bytes of the hole record</h2>
