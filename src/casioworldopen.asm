@@ -1,5 +1,5 @@
 ; ==========================================================================
-; Casio World Open (Casio, 1985)
+; CASIO WORLD OPEN - Casio - MSX1 - cartucho de 32 KB en las paginas 1 y 2
 ; ==========================================================================
 ; Generado por tools/mkasm.py a partir del trazado de flujo real.
 ; Los comentarios provienen de tools/../src/*.notes y estan anclados a
