@@ -88,7 +88,7 @@ audio{display:block;width:100%;max-width:640px;margin:.75rem 0 1.5rem}
 <h2 id="el-formato-interno-de-las-listas-de-objetos">El formato interno de las listas de objetos</h2>
 <p>Las dieciocho listas de 0x6299 decodifican limpias —cuántos sub-bloques, cuántos objetos por bloque, y cuatro bytes por objeto: la casilla y tres de atributo— y de ahí salen los diez trazados y las ocho parejas espejadas.</p>
 <p>Lo que no está cerrado es <b>qué dice cada uno de esos tres bytes de atributo</b>. Por su rango parecen coordenadas dentro del hoyo, pero no está comprobado.</p>
-<h2 id="las-vistas-de-terreno-y-los-cuadros-del-golfista-cerrado">~~Las vistas de terreno y los cuadros del golfista~~ — cerrado</h2>
+<h2 id="las-vistas-de-terreno-y-los-cuadros-del-golfista-cerrado"><del>Las vistas de terreno y los cuadros del golfista</del> — cerrado</h2>
 <p>Estaba abierto y ya no lo está. Los «cuadros del golfista» no eran del golfista: son los <b>ochenta mapas de la vista en perspectiva</b>, de 21×19, y el golfista son tres juegos de piezas de sprite aparte. La lista acumulada sobre la que se leen se monta en dos tandas seguidas en 0xE800, y contra la RAM del emulador sale sin un byte de diferencia. Está contado en <a href="LA-VISTA-3D.html">la vista 3D</a>.</p>
 <h2 id="la-cadena-de-bloques-de-0x9d2e">La cadena de bloques de 0x9D2E</h2>
 <p>Treinta y seis bloques encadenados sin tabla de punteros: cada cabecera dice cuánto saltar hasta el siguiente. Verificados uno a uno, pero sin identificar qué dibuja cada cual.</p>
