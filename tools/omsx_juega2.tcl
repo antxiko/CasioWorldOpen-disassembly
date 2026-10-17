@@ -1,7 +1,7 @@
 # omsx_juega2.tcl - Igual que omsx_juega.tcl pero tambien vuelca los
 # registros del VDP para confirmar el modo de pantalla real del juego.
 
-set ::SALIDA {C:/Users/Antxiko/Documents/DES_ASM/CASIOWORLDOPEN_DISAM/work/omsx}
+set ::SALIDA {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/CASIOWORLDOPEN_DISAM/work/omsx}
 file mkdir $::SALIDA
 set ::n 0
 

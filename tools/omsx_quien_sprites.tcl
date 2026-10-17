@@ -15,7 +15,7 @@ proc opcion {nombre porDefecto} {
     return $porDefecto
 }
 
-set ::SALIDA [opcion CWO_SALIDA {C:/Users/Antxiko/Documents/DES_ASM/CASIOWORLDOPEN_DISAM/work/omsx}]
+set ::SALIDA [opcion CWO_SALIDA {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/CASIOWORLDOPEN_DISAM/work/omsx}]
 set ::HOYO [opcion CWO_HOYO 5]
 file mkdir $::SALIDA
 set ::log [open $::SALIDA/sprites_h$::HOYO.log w]

@@ -2,7 +2,7 @@
 # Se anota HL (codigo de tile), DE (destino) y la direccion de retorno, que es
 # la que dice QUE rutina esta pintando. Se corta solo a las 4000 anotaciones
 # para no congelar el emulador.
-set ::SALIDA {C:/Users/Antxiko/Documents/DES_ASM/CASIOWORLDOPEN_DISAM/work/omsx/quien2.log}
+set ::SALIDA {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/CASIOWORLDOPEN_DISAM/work/omsx/quien2.log}
 set ::f [open $::SALIDA w]
 set ::n 0
 set ::bp {}

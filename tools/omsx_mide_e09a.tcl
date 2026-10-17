@@ -2,7 +2,7 @@
 # del arranque de Casio World Open, para saber que cuenta usa de verdad
 # L_411A en vez de seguir adivinando en estatico.
 
-set ::SALIDA {C:/Users/Antxiko/Documents/DES_ASM/CASIOWORLDOPEN_DISAM/work/omsx}
+set ::SALIDA {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/CASIOWORLDOPEN_DISAM/work/omsx}
 file mkdir $::SALIDA
 set ::f [open $::SALIDA/e09a.log w]
 

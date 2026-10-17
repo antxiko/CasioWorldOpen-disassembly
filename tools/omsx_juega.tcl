@@ -2,7 +2,7 @@
 # pantalla de titulo de Casio World Open, y vuelca VRAM+RAM (0xE09A/0xE09C)
 # en varios instantes para ver el hoyo real cargado.
 
-set ::SALIDA {C:/Users/Antxiko/Documents/DES_ASM/CASIOWORLDOPEN_DISAM/work/omsx}
+set ::SALIDA {C:/Users/Antxiko/Documents/DES_ASM/desensamblados/CASIOWORLDOPEN_DISAM/work/omsx}
 file mkdir $::SALIDA
 set ::n 0
 
