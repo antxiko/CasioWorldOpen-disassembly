@@ -96,7 +96,12 @@ del atributo pieza por pieza.
 | el 8 | 29 | 8 | 45×56 |
 | 9 y siguientes | 35 | 9 | 52×64 |
 
-Los tres tienen **seis fotogramas** de swing. Y el reparto no hay que
+Los tres tienen **seis fotogramas** de swing, y jugando no salen en orden: grabado en openMSX
+(`tools/guiones/swing.tcl`, solo la barra), el fotograma (0xE06E) cambia cada **8 cuadros**: el 1 mientras se
+apunta; con la primera pulsación, el 2 y, si la fuerza ha pasado de 0x40 (`mira_el_angulo_alto`, 0x4DBB), el **3**,
+arriba del todo, que se queda mientras sube la otra barra; con la segunda, otra vez el 2 y luego el 4, el 5 y el 6.
+Con poca fuerza el 3 no sale nunca. Cada cuadro grabado casa con las piezas que da la ROM para su fotograma
+(`tools/swing_cotejo.py`); los GIF están en la portada. Y el reparto no hay que
 adivinarlo: las tres tablas de posición miden 105, 87 y 66 bytes, que a tres
 bytes por pieza son 35, 29 y 22 —exactamente las que trae cada bloque de
 sprites—, y las tres listas miden 54, 48 y 36, que son seis fotogramas de

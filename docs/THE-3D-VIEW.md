@@ -96,7 +96,12 @@ third byte matches the attribute's colour piece for piece.
 | the 8 | 29 | 8 | 45×56 |
 | 9 and up | 35 | 9 | 52×64 |
 
-All three have **six swing frames**. And the split needs no guessing: the three
+All three have **six swing frames**, and in play they do not come in order: recorded in openMSX
+(`tools/guiones/swing.tcl`, just the space bar), the frame (0xE06E) changes every **8 frames**: 1 while aiming; on the
+first press, 2 and, if the power has gone past 0x40 (`mira_el_angulo_alto`, 0x4DBB), **3**, right at the top, which
+stays while the other bar rises; on the second, 2 again and then 4, 5 and 6. With little power, 3 never shows. Every
+recorded frame matches the pieces the ROM gives for its swing frame (`tools/swing_cotejo.py`); the GIFs are on the
+front page. And the split needs no guessing: the three
 position tables measure 105, 87 and 66 bytes, which at three bytes per piece is
 35, 29 and 22 — exactly what each sprite block carries — and the three lists
 measure 54, 48 and 36, which is six frames of nine, eight and six.

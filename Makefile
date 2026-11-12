@@ -81,6 +81,13 @@ imagenes: $(ROM)
 	@mkdir -p work/gfx
 	python3 tools/dibuja.py $(ROM) $(ORG) $(SRC)/casioworldopen.notes work/gfx
 
+# El swing JUGADO: grabar con
+#   powershell -File tools/lanza_graba.ps1 -rom casioworldopen.rom -guion tools/guiones/swing.tcl -salida work/swing.bin -bp 0x4B8A -ram "0xE000 0x1000" -maquina C-BIOS_MSX1_JP
+# y despues los GIF y su cotejo con la ROM.
+gifs: $(ROM)
+	python3 tools/swing_gif.py docs/imagenes
+	python3 tools/swing_cotejo.py
+
 web: $(ROM)
 	python3 tools/graficos.py $(ROM) $(ORG) docs/imagenes
 	python3 tools/md2html.py docs en
@@ -92,4 +99,4 @@ web: $(ROM)
 clean:
 	rm -rf $(WORK)/casioworldopen.trace.json $(WORK)/casioworldopen.blocks
 
-.PHONY: all comprueba trace listado verify sanity test densidad imagenes clean
+.PHONY: all comprueba trace listado verify sanity test densidad imagenes gifs clean

@@ -319,6 +319,22 @@ GALERIA = [
      "0x4F8A from a list of pieces and a three-byte table. The club picks "
      "which of the three, which is why the size changes: that is how far away "
      "the camera is"),
+    ("swing_golfista.gif",
+     "<b>El swing, jugado en openMSX</b> (un MSX1 japonés, a 60 cuadros por segundo; solo la barra, sin forzar "
+     "nada). El fotograma lo lleva 0xE06E y la interrupción cambia uno cada <b>8 cuadros</b>: 1 mientras se "
+     "apunta; con la primera pulsación, 2 y, si la fuerza ha pasado de 0x40 (0x4DBB), <b>3</b>, arriba del todo; "
+     "con la segunda, otra vez 2 y luego 4, 5 y 6, que se queda. Cada cuadro grabado casa con las piezas que da la "
+     "ROM para su fotograma (<code>tools/swing_cotejo.py</code>)",
+     "<b>The swing, played in openMSX</b> (a Japanese MSX1, at 60 frames a second; just the space bar, nothing "
+     "forced). 0xE06E holds the frame and the interrupt moves it on every <b>8 frames</b>: 1 while aiming; on the "
+     "first press, 2 and, if the power has gone past 0x40 (0x4DBB), <b>3</b>, right at the top; on the second, 2 "
+     "again and then 4, 5 and 6, which stays. Every recorded frame matches the pieces the ROM gives for its swing "
+     "frame (<code>tools/swing_cotejo.py</code>)"),
+    ("swing.gif",
+     "El mismo golpe con la pantalla entera: la barra de POWER, el swing y la bola que sale. Después del golpe la "
+     "vista sigue a la bola y el golfista baja hasta salir por abajo",
+     "The same shot on the whole screen: the POWER bar, the swing and the ball flying off. After the shot the view "
+     "follows the ball and the golfer slides down out of the bottom"),
     ("salidas.png",
      "<b>Los dieciocho hoyos vistos desde el tee</b>, con sus dos marcas "
      "blancas en primer plano. Cada uno es el primer tramo de su hoyo, "
@@ -351,7 +367,8 @@ GALERIA = [
 
 def img64(ruta):
     with open(ruta, "rb") as f:
-        return "data:image/png;base64," + base64.b64encode(f.read()).decode()
+        tipo = "gif" if ruta.endswith(".gif") else "png"
+        return "data:image/%s;base64," % tipo + base64.b64encode(f.read()).decode()
 
 
 def main(argv):
